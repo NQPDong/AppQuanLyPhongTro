@@ -1,4 +1,4 @@
-class Room {
+class RoomModel {
   String id;
   String propertyId; // Thuộc cơ sở nào
   String roomNumber;
@@ -8,14 +8,9 @@ class Room {
   String status; // 'available', 'rented', 'maintenance'
   String description;
 
-  Room({required this.id, ...});
+  RoomModel({required this.id, required this.propertyId, required this.roomNumber, required this.floor, required this.area, required this.price, required this.status, required this.description});
 
-  factory Room.fromMap(Map<String, dynamic> data, String documentId) {
-    return Room(
-      id: documentId,
-      propertyId: data['propertyId'] ?? '',
-      roomNumber: data['roomNumber'] ?? '',
-      status: data['status'] ?? 'available',
-    );
-  }
+  Map<String, dynamic> toMap() => {'id': id, 'propertyId': propertyId, 'roomNumber': roomNumber, 'floor': floor, 'area': area, 'price': price, 'status': status, 'description': description};
+
+  factory RoomModel.fromMap(Map<String, dynamic> map) => RoomModel(id: map['id'] ?? '', propertyId: map['propertyId'] ?? '', roomNumber: map['roomNumber'] ?? '', floor: map['floor'] ?? 1, area: (map['area'] ?? 0).toDouble(), price: (map['price'] ?? 0).toDouble(), status: map['status'] ?? 'available', description: map['description'] ?? '');
 }
