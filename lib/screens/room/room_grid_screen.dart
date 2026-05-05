@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/property_model.dart';
 import '../../models/room_model.dart';
 import '../../services/room_service.dart';
+import '../../services/property_service.dart';
 import '../../widgets/search_bar_widget.dart';
 import '../../widgets/filter_chips_widget.dart';
 import 'add_room_dialog.dart';
@@ -606,6 +607,7 @@ class _RoomGridScreenState extends State<RoomGridScreen> {
               Navigator.pop(context);
               try {
                 await RoomService().deleteRoom(room.id);
+                await PropertyService().updateRoomCount(room.propertyId, -1);
                 messenger.showSnackBar(
                   const SnackBar(
                     content: Text('Đã xóa phòng!'),
