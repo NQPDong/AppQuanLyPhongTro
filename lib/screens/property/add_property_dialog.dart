@@ -109,6 +109,9 @@ class _AddPropertyDialogState extends State<AddPropertyDialog> {
               // Tên cơ sở
               TextFormField(
                 controller: _nameController,
+                textCapitalization: TextCapitalization.words,
+                textInputAction: TextInputAction.next,
+                keyboardType: TextInputType.text,
                 decoration: InputDecoration(
                   labelText: 'Tên cơ sở',
                   hintText: 'VD: Nhà trọ Hạnh Phúc',
@@ -124,6 +127,9 @@ class _AddPropertyDialogState extends State<AddPropertyDialog> {
               // Địa chỉ
               TextFormField(
                 controller: _addressController,
+                textCapitalization: TextCapitalization.words,
+                textInputAction: TextInputAction.next,
+                keyboardType: TextInputType.text,
                 decoration: InputDecoration(
                   labelText: 'Địa chỉ',
                   hintText: 'VD: 123 Nguyễn Văn Cừ, Q.5',
@@ -139,6 +145,8 @@ class _AddPropertyDialogState extends State<AddPropertyDialog> {
               // URL ảnh
               TextFormField(
                 controller: _imageUrlController,
+                keyboardType: TextInputType.url,
+                textInputAction: TextInputAction.done,
                 decoration: InputDecoration(
                   labelText: 'URL ảnh (Tùy chọn)',
                   hintText: 'https://example.com/image.jpg',

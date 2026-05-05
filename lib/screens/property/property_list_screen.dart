@@ -9,7 +9,6 @@ class PropertyListScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Tạm thời fix cứng ID của bạn để test (Sau này Thành viên 1 làm Đăng nhập xong sẽ truyền ID thật vào đây)
     final String ownerId = "test_owner_id_123";
 
     return Scaffold(

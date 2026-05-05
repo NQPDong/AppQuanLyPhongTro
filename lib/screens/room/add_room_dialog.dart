@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/room_model.dart';
 import '../../services/room_service.dart';
+import '../../services/property_service.dart';
 
 class AddRoomDialog extends StatefulWidget {
   final String propertyId;
@@ -74,6 +75,7 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
           await RoomService().updateRoom(room);
         } else {
           await RoomService().addRoom(room);
+          await PropertyService().updateRoomCount(widget.propertyId, 1);
         }
 
         if (mounted) {
@@ -120,6 +122,9 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
               // Số phòng
               TextFormField(
                 controller: _roomNumberController,
+                textCapitalization: TextCapitalization.characters,
+                textInputAction: TextInputAction.next,
+                keyboardType: TextInputType.text,
                 decoration: InputDecoration(
                   labelText: 'Số phòng',
                   hintText: 'VD: 101, 202, A1...',
@@ -138,6 +143,7 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
                   Expanded(
                     child: TextFormField(
                       controller: _floorController,
+                      textInputAction: TextInputAction.next,
                       decoration: InputDecoration(
                         labelText: 'Tầng',
                         prefixIcon: const Icon(Icons.stairs),
@@ -151,6 +157,7 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
                   Expanded(
                     child: TextFormField(
                       controller: _areaController,
+                      textInputAction: TextInputAction.next,
                       decoration: InputDecoration(
                         labelText: 'Diện tích (m²)',
                         prefixIcon: const Icon(Icons.square_foot),
@@ -167,6 +174,7 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
               // Giá phòng
               TextFormField(
                 controller: _priceController,
+                textInputAction: TextInputAction.next,
                 decoration: InputDecoration(
                   labelText: 'Giá phòng (VNĐ/Tháng)',
                   hintText: 'VD: 3000000',
@@ -183,6 +191,9 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
               // Mô tả
               TextFormField(
                 controller: _descriptionController,
+                textCapitalization: TextCapitalization.sentences,
+                textInputAction: TextInputAction.done,
+                keyboardType: TextInputType.multiline,
                 decoration: InputDecoration(
                   labelText: 'Mô tả thêm (Tùy chọn)',
                   hintText: 'VD: Có ban công, máy lạnh...',

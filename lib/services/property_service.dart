@@ -23,4 +23,11 @@ class PropertyService {
   Stream<List<PropertyModel>> getProperties(String ownerId) {
     return _db.collection('properties').where('ownerId', isEqualTo: ownerId).snapshots().map((snapshot) => snapshot.docs.map((doc) => PropertyModel.fromMap(doc.data(), doc.id)).toList());
   }
+
+  // Cập nhật số lượng phòng
+  Future<void> updateRoomCount(String propertyId, int change) {
+    return _db.collection('properties').doc(propertyId).update({
+      'totalRooms': FieldValue.increment(change),
+    });
+  }
 }
