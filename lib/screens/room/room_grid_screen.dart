@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../models/property_model.dart';
 import '../../models/room_model.dart';
+import '../../providers/room_provider.dart';
 import '../../services/room_service.dart';
 import '../../services/property_service.dart';
 import '../../widgets/search_bar_widget.dart';
@@ -18,56 +20,19 @@ class RoomGridScreen extends StatefulWidget {
 }
 
 class _RoomGridScreenState extends State<RoomGridScreen> {
-  // State cho lọc / tìm kiếm / sắp xếp
-  String _searchText = '';
-  String _statusFilter = 'Tất cả';
-  String _sortBy = 'roomNumber'; // 'roomNumber', 'priceAsc', 'priceDesc'
-
-  // State cho bộ lọc nâng cao
-  double? _minPrice;
-  double? _maxPrice;
-  double? _minArea;
-  double? _maxArea;
-
-  /// Áp dụng tất cả bộ lọc + sắp xếp lên danh sách phòng gốc
-  List<RoomModel> _applyFilters(List<RoomModel> allRooms) {
-    // Bước 1: Tìm kiếm theo số phòng
-    var rooms = allRooms.where((room) {
-      final matchesSearch =
-          _searchText.isEmpty || room.roomNumber.toLowerCase().contains(_searchText.toLowerCase());
-      final matchesStatus =
-          _statusFilter == 'Tất cả' || room.status == _statusFilter;
-      return matchesSearch && matchesStatus;
-    }).toList();
-
-    // Bước 2: Lọc nâng cao (giá, diện tích)
-    rooms = RoomService.filterRooms(
-      rooms: rooms,
-      minPrice: _minPrice,
-      maxPrice: _maxPrice,
-      minArea: _minArea,
-      maxArea: _maxArea,
-    );
-
-    // Bước 3: Sắp xếp
-    switch (_sortBy) {
-      case 'priceAsc':
-        rooms.sort((a, b) => a.price.compareTo(b.price));
-        break;
-      case 'priceDesc':
-        rooms.sort((a, b) => b.price.compareTo(a.price));
-        break;
-      case 'roomNumber':
-      default:
-        rooms.sort((a, b) => a.roomNumber.compareTo(b.roomNumber));
-        break;
-    }
-
-    return rooms;
+  @override
+  void initState() {
+    super.initState();
+    // Khởi tạo Provider: lắng nghe dữ liệu realtime từ Firebase
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<RoomProvider>().loadRooms(widget.property.id);
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final roomProvider = context.watch<RoomProvider>();
+
     return Scaffold(
       appBar: AppBar(
         title: Text("Phòng tại ${widget.property.name}"),
@@ -79,21 +44,21 @@ class _RoomGridScreenState extends State<RoomGridScreen> {
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             onSelected: (value) {
-              setState(() => _sortBy = value);
+              context.read<RoomProvider>().setSortBy(value);
             },
             itemBuilder: (context) => [
-              _buildSortMenuItem('roomNumber', 'Số phòng (A-Z)', Icons.sort_by_alpha),
-              _buildSortMenuItem('priceAsc', 'Giá tăng dần', Icons.arrow_upward),
-              _buildSortMenuItem('priceDesc', 'Giá giảm dần', Icons.arrow_downward),
+              _buildSortMenuItem(roomProvider, 'roomNumber', 'Số phòng (A-Z)', Icons.sort_by_alpha),
+              _buildSortMenuItem(roomProvider, 'priceAsc', 'Giá tăng dần', Icons.arrow_upward),
+              _buildSortMenuItem(roomProvider, 'priceDesc', 'Giá giảm dần', Icons.arrow_downward),
             ],
           ),
           // Nút bộ lọc nâng cao
           IconButton(
             icon: Badge(
-              isLabelVisible: _minPrice != null ||
-                  _maxPrice != null ||
-                  _minArea != null ||
-                  _maxArea != null,
+              isLabelVisible: roomProvider.minPrice != null ||
+                  roomProvider.maxPrice != null ||
+                  roomProvider.minArea != null ||
+                  roomProvider.maxArea != null,
               child: const Icon(Icons.filter_alt_outlined),
             ),
             tooltip: 'Bộ lọc nâng cao',
@@ -107,91 +72,21 @@ class _RoomGridScreenState extends State<RoomGridScreen> {
           SearchBarWidget(
             hintText: "Tìm số phòng...",
             onChanged: (value) {
-              setState(() => _searchText = value);
+              context.read<RoomProvider>().search(value);
             },
           ),
 
           // 2. Filter Chips (lọc nhanh trạng thái)
           FilterChipsWidget(
             onFilterChanged: (status) {
-              setState(() => _statusFilter = status);
+              context.read<RoomProvider>().setStatusFilter(status);
             },
           ),
           const SizedBox(height: 4),
 
-          // 3. Danh sách phòng dạng Grid (dữ liệu realtime từ Firebase)
+          // 3. Danh sách phòng dạng Grid (dữ liệu từ Provider)
           Expanded(
-            child: StreamBuilder<List<RoomModel>>(
-              stream:
-                  RoomService().getRoomsByProperty(widget.property.id),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (snapshot.hasError) {
-                  return Center(
-                      child: Text("Lỗi tải dữ liệu: ${snapshot.error}"));
-                }
-
-                final allRooms = snapshot.data ?? [];
-
-                if (allRooms.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.meeting_room_outlined,
-                            size: 80, color: Colors.grey[300]),
-                        const SizedBox(height: 16),
-                        Text(
-                          "Chưa có phòng nào.\nHãy nhấn nút + để thêm phòng.",
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.grey[500],
-                              height: 1.5),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                final filteredRooms = _applyFilters(allRooms);
-
-                if (filteredRooms.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.search_off,
-                            size: 60, color: Colors.grey[300]),
-                        const SizedBox(height: 12),
-                        Text(
-                          "Không có phòng nào phù hợp",
-                          style: TextStyle(
-                              fontSize: 15, color: Colors.grey[500]),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                return GridView.builder(
-                  padding: const EdgeInsets.all(10),
-                  gridDelegate:
-                      const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    childAspectRatio: 0.78,
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
-                  ),
-                  itemCount: filteredRooms.length,
-                  itemBuilder: (context, index) {
-                    return _buildRoomCard(filteredRooms[index]);
-                  },
-                );
-              },
-            ),
+            child: _buildRoomGrid(roomProvider),
           ),
         ],
       ),
@@ -206,6 +101,74 @@ class _RoomGridScreenState extends State<RoomGridScreen> {
         },
         child: const Icon(Icons.add),
       ),
+    );
+  }
+
+  // =================== ROOM GRID ===================
+  Widget _buildRoomGrid(RoomProvider provider) {
+    if (provider.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (provider.error != null) {
+      return Center(
+          child: Text("Lỗi tải dữ liệu: ${provider.error}"));
+    }
+
+    // Trường hợp chưa có phòng nào (danh sách gốc rỗng)
+    if (provider.allRooms.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.meeting_room_outlined,
+                size: 80, color: Colors.grey[300]),
+            const SizedBox(height: 16),
+            Text(
+              "Chưa có phòng nào.\nHãy nhấn nút + để thêm phòng.",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey[500],
+                  height: 1.5),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Trường hợp lọc/tìm kiếm không ra kết quả
+    final filteredRooms = provider.rooms;
+    if (filteredRooms.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.search_off,
+                size: 60, color: Colors.grey[300]),
+            const SizedBox(height: 12),
+            Text(
+              "Không có phòng nào phù hợp",
+              style: TextStyle(
+                  fontSize: 15, color: Colors.grey[500]),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return GridView.builder(
+      padding: const EdgeInsets.all(10),
+      gridDelegate:
+          const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 0.78,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
+      ),
+      itemCount: filteredRooms.length,
+      itemBuilder: (context, index) {
+        return _buildRoomCard(filteredRooms[index]);
+      },
     );
   }
 
@@ -360,24 +323,25 @@ class _RoomGridScreenState extends State<RoomGridScreen> {
 
   // =================== SORT MENU ITEM ===================
   PopupMenuItem<String> _buildSortMenuItem(
-      String value, String label, IconData icon) {
+      RoomProvider provider, String value, String label, IconData icon) {
+    final isSelected = provider.sortBy == value;
     return PopupMenuItem(
       value: value,
       child: Row(
         children: [
           Icon(icon,
               size: 18,
-              color: _sortBy == value ? Colors.blueAccent : Colors.grey),
+              color: isSelected ? Colors.blueAccent : Colors.grey),
           const SizedBox(width: 8),
           Text(
             label,
             style: TextStyle(
-              color: _sortBy == value ? Colors.blueAccent : null,
+              color: isSelected ? Colors.blueAccent : null,
               fontWeight:
-                  _sortBy == value ? FontWeight.bold : FontWeight.normal,
+                  isSelected ? FontWeight.bold : FontWeight.normal,
             ),
           ),
-          if (_sortBy == value) ...[
+          if (isSelected) ...[
             const Spacer(),
             const Icon(Icons.check, size: 18, color: Colors.blueAccent),
           ],
@@ -388,15 +352,16 @@ class _RoomGridScreenState extends State<RoomGridScreen> {
 
   // =================== FILTER BOTTOM SHEET ===================
   void _showFilterBottomSheet(BuildContext context) {
+    final roomProvider = context.read<RoomProvider>();
     // Controller tạm cho bottom sheet
     final minPriceCtrl =
-        TextEditingController(text: _minPrice?.toStringAsFixed(0) ?? '');
+        TextEditingController(text: roomProvider.minPrice?.toStringAsFixed(0) ?? '');
     final maxPriceCtrl =
-        TextEditingController(text: _maxPrice?.toStringAsFixed(0) ?? '');
+        TextEditingController(text: roomProvider.maxPrice?.toStringAsFixed(0) ?? '');
     final minAreaCtrl =
-        TextEditingController(text: _minArea?.toStringAsFixed(0) ?? '');
+        TextEditingController(text: roomProvider.minArea?.toStringAsFixed(0) ?? '');
     final maxAreaCtrl =
-        TextEditingController(text: _maxArea?.toStringAsFixed(0) ?? '');
+        TextEditingController(text: roomProvider.maxArea?.toStringAsFixed(0) ?? '');
 
     showModalBottomSheet(
       context: context,
@@ -523,12 +488,7 @@ class _RoomGridScreenState extends State<RoomGridScreen> {
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () {
-                        setState(() {
-                          _minPrice = null;
-                          _maxPrice = null;
-                          _minArea = null;
-                          _maxArea = null;
-                        });
+                        context.read<RoomProvider>().clearAdvancedFilter();
                         Navigator.pop(context);
                       },
                       style: OutlinedButton.styleFrom(
@@ -543,12 +503,12 @@ class _RoomGridScreenState extends State<RoomGridScreen> {
                   Expanded(
                     child: FilledButton(
                       onPressed: () {
-                        setState(() {
-                          _minPrice = double.tryParse(minPriceCtrl.text);
-                          _maxPrice = double.tryParse(maxPriceCtrl.text);
-                          _minArea = double.tryParse(minAreaCtrl.text);
-                          _maxArea = double.tryParse(maxAreaCtrl.text);
-                        });
+                        context.read<RoomProvider>().setAdvancedFilter(
+                          minPrice: double.tryParse(minPriceCtrl.text),
+                          maxPrice: double.tryParse(maxPriceCtrl.text),
+                          minArea: double.tryParse(minAreaCtrl.text),
+                          maxArea: double.tryParse(maxAreaCtrl.text),
+                        );
                         Navigator.pop(context);
                       },
                       style: FilledButton.styleFrom(

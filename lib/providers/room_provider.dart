@@ -10,6 +10,9 @@ class RoomProvider with ChangeNotifier {
   List<RoomModel> _allRooms = []; // Chứa tất cả phòng tải về từ Firebase
   List<RoomModel> _filteredRooms = []; // Danh sách phòng sau khi đã lọc/tìm kiếm
 
+  bool _isLoading = true;
+  String? _error;
+
   String _searchQuery = "";
   String _selectedStatus = "Tất cả"; // 'Tất cả', 'available', 'rented', 'maintenance'
   String _sortBy = 'roomNumber'; // 'roomNumber', 'priceAsc', 'priceDesc'
@@ -19,6 +22,9 @@ class RoomProvider with ChangeNotifier {
   double? _maxArea;
 
   List<RoomModel> get rooms => _filteredRooms;
+  List<RoomModel> get allRooms => _allRooms;
+  bool get isLoading => _isLoading;
+  String? get error => _error;
   String get selectedStatus => _selectedStatus;
   String get sortBy => _sortBy;
   double? get minPrice => _minPrice;
@@ -28,11 +34,24 @@ class RoomProvider with ChangeNotifier {
 
   // Lắng nghe dữ liệu từ Firebase
   void loadRooms(String propertyId) {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
     _roomSubscription?.cancel();
-    _roomSubscription = _roomService.getRoomsByProperty(propertyId).listen((data) {
-      _allRooms = data;
-      _applyFilter();
-    });
+    _roomSubscription = _roomService.getRoomsByProperty(propertyId).listen(
+      (data) {
+        _allRooms = data;
+        _isLoading = false;
+        _error = null;
+        _applyFilter();
+      },
+      onError: (e) {
+        _error = e.toString();
+        _isLoading = false;
+        notifyListeners();
+      },
+    );
   }
 
   // Logic tìm kiếm

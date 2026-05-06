@@ -36,8 +36,7 @@ class RoomService {
   }
 
   // Lọc phòng theo giá, diện tích, tầng, trạng thái (phía client)
-  // Firestore không hỗ trợ lọc phức tạp nhiều field cùng lúc,
-  // nên ta tải tất cả phòng rồi lọc phía client
+  // Firestore không hỗ trợ lọc phức tạp nhiều field cùng lúc,nên ta tải tất cả phòng rồi lọc phía client
   static List<RoomModel> filterRooms({
     required List<RoomModel> rooms,
     double? minPrice,
