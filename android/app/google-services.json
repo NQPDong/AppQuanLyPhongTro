@@ -1,21 +1,21 @@
 {
   "project_info": {
-    "project_number": "684296027446",
-    "project_id": "ql-phong-tro",
-    "storage_bucket": "ql-phong-tro.firebasestorage.app"
+    "project_number": "22853096622",
+    "project_id": "quanlyphongtro-fbd92",
+    "storage_bucket": "quanlyphongtro-fbd92.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:684296027446:android:1d1153fc1ce4f89e758797",
+        "mobilesdk_app_id": "1:22853096622:android:7c3d0888c75aa2713a893f",
         "android_client_info": {
-          "package_name": "com.example.app_quanly_phong"
+          "package_name": "com.example.quan_ly_phong_tro"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyC0Lj-fQHrPm6hqLaTzVimrwKoWzPYV1Yk"
+          "current_key": "AIzaSyDEAevKqcYsezO-TJ46XueP8VNxWXnyDpQ"
         }
       ],
       "services": {
