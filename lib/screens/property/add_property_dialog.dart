@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import '../../models/property_model.dart';
+import '../../models/property.dart';
 import '../../services/property_service.dart';
 
 class AddPropertyDialog extends StatefulWidget {
   final String ownerId;
-  final PropertyModel? property; // null = thêm mới, có giá trị = sửa
+  final Property? property; // null = thêm mới, có giá trị = sửa
 
   const AddPropertyDialog({
     super.key,
@@ -48,15 +48,16 @@ class _AddPropertyDialogState extends State<AddPropertyDialog> {
       setState(() => _isLoading = true);
 
       try {
-        final property = PropertyModel(
+        final property = Property(
           id: isEditing
               ? widget.property!.id
               : DateTime.now().millisecondsSinceEpoch.toString(),
           name: _nameController.text.trim(),
           address: _addressController.text.trim(),
           imageUrl: _imageUrlController.text.trim(),
-          totalRooms: widget.property?.totalRooms ?? 0,
+          roomCount: widget.property?.roomCount ?? 0,
           ownerId: widget.ownerId,
+          createdAt: widget.property?.createdAt ?? DateTime.now(),
         );
 
         if (isEditing) {

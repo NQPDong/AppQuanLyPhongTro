@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../models/property_model.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../../models/property.dart';
 import '../../providers/property_provider.dart';
 import '../../services/property_service.dart';
 import 'add_property_dialog.dart';
-import '../room/room_grid_screen.dart';
+import '../room/room_screen.dart';
 
 class PropertyListScreen extends StatefulWidget {
   const PropertyListScreen({super.key});
@@ -14,14 +15,16 @@ class PropertyListScreen extends StatefulWidget {
 }
 
 class _PropertyListScreenState extends State<PropertyListScreen> {
-  final String ownerId = "test_owner_id_123";
+  String get ownerId => FirebaseAuth.instance.currentUser?.uid ?? '';
 
   @override
   void initState() {
     super.initState();
     // Khởi tạo Provider: lắng nghe dữ liệu realtime từ Firebase
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<PropertyProvider>().init(ownerId);
+      if (ownerId.isNotEmpty) {
+        context.read<PropertyProvider>().init(ownerId);
+      }
     });
   }
 
@@ -87,7 +90,7 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
   }
 
   Widget _buildPropertyCard(
-      BuildContext context, PropertyModel property, String ownerId) {
+      BuildContext context, Property property, String ownerId) {
     return Card(
       elevation: 3,
       margin: const EdgeInsets.only(bottom: 12),
@@ -207,7 +210,7 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
     );
   }
 
-  Widget _buildPropertyImage(PropertyModel property) {
+  Widget _buildPropertyImage(Property property) {
     if (property.imageUrl.isNotEmpty) {
       return SizedBox(
         height: 160,
@@ -242,7 +245,7 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
   }
 
   void _editProperty(
-      BuildContext context, PropertyModel property, String ownerId) {
+      BuildContext context, Property property, String ownerId) {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -253,7 +256,7 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
     );
   }
 
-  void _confirmDeleteProperty(BuildContext context, PropertyModel property) {
+  void _confirmDeleteProperty(BuildContext context, Property property) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(

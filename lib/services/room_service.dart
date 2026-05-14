@@ -1,44 +1,30 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/room_model.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../models/room.dart';
+import 'property_service.dart';
 
 class RoomService {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final CollectionReference _roomsCollection = FirebaseFirestore.instance.collection('rooms');
+  final String? _currentUserId = FirebaseAuth.instance.currentUser?.uid;
+  final PropertyService _propertyService = PropertyService();
 
-  // Thêm phòng mới
-  Future<void> addRoom(RoomModel room) {
-    return _db.collection('rooms').doc(room.id).set(room.toMap());
-  }
-
-  // Cập nhật toàn bộ thông tin phòng
-  Future<void> updateRoom(RoomModel room) {
-    return _db.collection('rooms').doc(room.id).update(room.toMap());
-  }
-
-  // Xóa phòng
-  Future<void> deleteRoom(String roomId) {
-    return _db.collection('rooms').doc(roomId).delete();
-  }
-
-  // Lấy danh sách phòng theo PropertyId (Realtime)
-  Stream<List<RoomModel>> getRoomsByProperty(String propertyId) {
-    return _db
-        .collection('rooms')
+  // Lấy danh sách phòng theo propertyId
+  Stream<List<Room>> getRoomsByProperty(String propertyId) {
+    if (_currentUserId == null) return const Stream.empty();
+    
+    return _roomsCollection
         .where('propertyId', isEqualTo: propertyId)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => RoomModel.fromMap(doc.data()))
-            .toList());
+        .map((snapshot) {
+      final list = snapshot.docs.map((doc) => Room.fromMap(doc.data() as Map<String, dynamic>, doc.id)).toList();
+      list.sort((a, b) => a.roomNumber.compareTo(b.roomNumber)); // Sắp xếp client-side
+      return list;
+    });
   }
 
-  // Cập nhật trạng thái phòng
-  Future<void> updateRoomStatus(String roomId, String status) {
-    return _db.collection('rooms').doc(roomId).update({'status': status});
-  }
-
-  // Lọc phòng theo giá, diện tích, tầng, trạng thái (phía client)
-  // Firestore không hỗ trợ lọc phức tạp nhiều field cùng lúc,nên ta tải tất cả phòng rồi lọc phía client
-  static List<RoomModel> filterRooms({
-    required List<RoomModel> rooms,
+  // Lọc phòng theo giá, diện tích, tầng, trạng thái
+  static List<Room> filterRooms({
+    required List<Room> rooms,
     double? minPrice,
     double? maxPrice,
     double? minArea,
@@ -57,5 +43,33 @@ class RoomService {
       }
       return true;
     }).toList();
+  }
+
+  // Thêm phòng mới
+  Future<void> addRoom(Room room) async {
+    await _roomsCollection
+        .doc(room.id.isNotEmpty ? room.id : null)
+        .set(room.toMap());
+  }
+
+  // Cập nhật thông tin phòng 
+  Future<void> updateRoom(Room room) async {
+    await _roomsCollection.doc(room.id).update(room.toMap());
+  }
+
+  // Cập nhật trạng thái phòng (available/rented/maintenance)
+  Future<void> updateRoomStatus(String roomId, String status) async {
+    await _roomsCollection.doc(roomId).update({
+      'status': status,
+    });
+  }
+
+  // Xóa phòng
+  Future<void> deleteRoom(String roomId, [String? propertyId]) async {
+    await _roomsCollection.doc(roomId).delete();
+    // Giảm roomCount ở property nếu có propertyId
+    if (propertyId != null) {
+      await _propertyService.updateRoomCount(propertyId, -1);
+    }
   }
 }

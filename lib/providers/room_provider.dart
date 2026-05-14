@@ -1,14 +1,14 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../models/room_model.dart';
+import '../models/room.dart';
 import '../services/room_service.dart';
 
 class RoomProvider with ChangeNotifier {
   final RoomService _roomService = RoomService();
-  StreamSubscription<List<RoomModel>>? _roomSubscription;
+  StreamSubscription<List<Room>>? _roomSubscription;
 
-  List<RoomModel> _allRooms = []; // Chứa tất cả phòng tải về từ Firebase
-  List<RoomModel> _filteredRooms = []; // Danh sách phòng sau khi đã lọc/tìm kiếm
+  List<Room> _allRooms = []; // Chứa tất cả phòng tải về từ Firebase
+  List<Room> _filteredRooms = []; // Danh sách phòng sau khi đã lọc/tìm kiếm
 
   bool _isLoading = true;
   String? _error;
@@ -21,8 +21,8 @@ class RoomProvider with ChangeNotifier {
   double? _minArea;
   double? _maxArea;
 
-  List<RoomModel> get rooms => _filteredRooms;
-  List<RoomModel> get allRooms => _allRooms;
+  List<Room> get rooms => _filteredRooms;
+  List<Room> get allRooms => _allRooms;
   bool get isLoading => _isLoading;
   String? get error => _error;
   String get selectedStatus => _selectedStatus;
@@ -96,14 +96,14 @@ class RoomProvider with ChangeNotifier {
   }
 
   void _applyFilter() {
-    // Bước 1: Lọc theo trạng thái và tìm kiếm
+    // Lọc theo trạng thái và tìm kiếm
     _filteredRooms = _allRooms.where((room) {
       final matchesSearch = room.roomNumber.toLowerCase().contains(_searchQuery.toLowerCase());
       final matchesStatus = _selectedStatus == "Tất cả" || room.status == _selectedStatus;
       return matchesSearch && matchesStatus;
     }).toList();
 
-    // Bước 2: Lọc nâng cao theo giá, diện tích
+    // Lọc nâng cao theo giá, diện tích
     _filteredRooms = RoomService.filterRooms(
       rooms: _filteredRooms,
       minPrice: _minPrice,
@@ -112,7 +112,7 @@ class RoomProvider with ChangeNotifier {
       maxArea: _maxArea,
     );
 
-    // Bước 3: Sắp xếp
+    // Sắp xếp
     switch (_sortBy) {
       case 'priceAsc':
         _filteredRooms.sort((a, b) => a.price.compareTo(b.price));

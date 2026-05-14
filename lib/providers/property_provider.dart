@@ -1,24 +1,24 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../models/property_model.dart';
+import '../models/property.dart';
 import '../services/property_service.dart';
 
 class PropertyProvider with ChangeNotifier {
   final PropertyService _propertyService = PropertyService();
-  StreamSubscription<List<PropertyModel>>? _subscription;
+  StreamSubscription<List<Property>>? _subscription;
 
-  List<PropertyModel> _properties = [];
+  List<Property> _properties = [];
   bool _isLoading = true;
   String? _error;
 
-  List<PropertyModel> get properties => _properties;
+  List<Property> get properties => _properties;
   bool get isLoading => _isLoading;
   String? get error => _error;
 
-  PropertyModel? _selectedProperty;
-  PropertyModel? get selectedProperty => _selectedProperty;
+  Property? _selectedProperty;
+  Property? get selectedProperty => _selectedProperty;
 
-  void selectProperty(PropertyModel property) {
+  void selectProperty(Property property) {
     _selectedProperty = property;
     notifyListeners();
   }
@@ -46,12 +46,12 @@ class PropertyProvider with ChangeNotifier {
   }
 
   // Thêm cơ sở mới
-  Future<void> addProperty(PropertyModel property) async {
+  Future<void> addProperty(Property property) async {
     await _propertyService.addProperty(property);
   }
 
   // Cập nhật cơ sở
-  Future<void> updateProperty(PropertyModel property) async {
+  Future<void> updateProperty(Property property) async {
     await _propertyService.updateProperty(property);
   }
 

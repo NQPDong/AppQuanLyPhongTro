@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../models/property_model.dart';
-import '../../models/room_model.dart';
+import '../../models/property.dart';
+import '../../models/room.dart';
 import '../../providers/room_provider.dart';
 import '../../services/room_service.dart';
 import '../../services/property_service.dart';
@@ -12,7 +12,7 @@ import 'room_detail_dialog.dart';
 
 /// MÀN HÌNH DANH SÁCH PHÒNG TRỌ — Grid 2 cột
 class RoomGridScreen extends StatefulWidget {
-  final PropertyModel property;
+  final Property property;
   const RoomGridScreen({super.key, required this.property});
 
   @override
@@ -68,7 +68,7 @@ class _RoomGridScreenState extends State<RoomGridScreen> {
       ),
       body: Column(
         children: [
-          // 1. Thanh tìm kiếm
+          // Thanh tìm kiếm
           SearchBarWidget(
             hintText: "Tìm số phòng...",
             onChanged: (value) {
@@ -76,7 +76,7 @@ class _RoomGridScreenState extends State<RoomGridScreen> {
             },
           ),
 
-          // 2. Filter Chips (lọc nhanh trạng thái)
+          // Filter Chips 
           FilterChipsWidget(
             onFilterChanged: (status) {
               context.read<RoomProvider>().setStatusFilter(status);
@@ -84,7 +84,7 @@ class _RoomGridScreenState extends State<RoomGridScreen> {
           ),
           const SizedBox(height: 4),
 
-          // 3. Danh sách phòng dạng Grid (dữ liệu từ Provider)
+          // Danh sách phòng dạng Grid
           Expanded(
             child: _buildRoomGrid(roomProvider),
           ),
@@ -104,7 +104,7 @@ class _RoomGridScreenState extends State<RoomGridScreen> {
     );
   }
 
-  // =================== ROOM GRID ===================
+  // ROOM GRID 
   Widget _buildRoomGrid(RoomProvider provider) {
     if (provider.isLoading) {
       return const Center(child: CircularProgressIndicator());
@@ -114,7 +114,7 @@ class _RoomGridScreenState extends State<RoomGridScreen> {
           child: Text("Lỗi tải dữ liệu: ${provider.error}"));
     }
 
-    // Trường hợp chưa có phòng nào (danh sách gốc rỗng)
+    // Trường hợp chưa có phòng nào
     if (provider.allRooms.isEmpty) {
       return Center(
         child: Column(
@@ -172,8 +172,8 @@ class _RoomGridScreenState extends State<RoomGridScreen> {
     );
   }
 
-  // =================== ROOM CARD ===================
-  Widget _buildRoomCard(RoomModel room) {
+  // ROOM CARD 
+  Widget _buildRoomCard(Room room) {
     final statusInfo = _getStatusInfo(room.status);
 
     return Card(
@@ -258,7 +258,7 @@ class _RoomGridScreenState extends State<RoomGridScreen> {
 
                   const Spacer(),
 
-                  // Icon phòng ở giữa
+                  // Icon phòng 
                   Center(
                     child: Container(
                       padding: const EdgeInsets.all(14),
@@ -321,7 +321,7 @@ class _RoomGridScreenState extends State<RoomGridScreen> {
     );
   }
 
-  // =================== SORT MENU ITEM ===================
+  // SORT MENU ITEM
   PopupMenuItem<String> _buildSortMenuItem(
       RoomProvider provider, String value, String label, IconData icon) {
     final isSelected = provider.sortBy == value;
@@ -350,7 +350,7 @@ class _RoomGridScreenState extends State<RoomGridScreen> {
     );
   }
 
-  // =================== FILTER BOTTOM SHEET ===================
+  // FILTER BOTTOM SHEET
   void _showFilterBottomSheet(BuildContext context) {
     final roomProvider = context.read<RoomProvider>();
     // Controller tạm cho bottom sheet
@@ -528,8 +528,8 @@ class _RoomGridScreenState extends State<RoomGridScreen> {
     );
   }
 
-  // =================== EDIT / DELETE ===================
-  void _editRoom(RoomModel room) {
+  // EDIT / DELETE
+  void _editRoom(Room room) {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -540,7 +540,7 @@ class _RoomGridScreenState extends State<RoomGridScreen> {
     );
   }
 
-  void _confirmDeleteRoom(RoomModel room) {
+  void _confirmDeleteRoom(Room room) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -590,7 +590,7 @@ class _RoomGridScreenState extends State<RoomGridScreen> {
     );
   }
 
-  // =================== UTILS ===================
+  // TRẠNG THÁI PHÒNG 
   Map<String, dynamic> _getStatusInfo(String status) {
     switch (status) {
       case 'available':

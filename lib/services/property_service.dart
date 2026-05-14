@@ -1,33 +1,47 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/property_model.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../models/property.dart';
 
 class PropertyService {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final CollectionReference _propertiesCollection = FirebaseFirestore.instance.collection('properties');
+  final String? _currentUserId = FirebaseAuth.instance.currentUser?.uid;
 
-  // Thêm cơ sở mới
-  Future<void> addProperty(PropertyModel property) {
-    return _db.collection('properties').doc(property.id).set(property.toMap());
+  // Lấy danh sách cơ sở (Realtime qua Stream)
+  Stream<List<Property>> getProperties([String? ownerId]) {
+    final uid = ownerId ?? _currentUserId;
+    if (uid == null) return const Stream.empty();
+    
+    return _propertiesCollection
+        .where('ownerId', isEqualTo: uid)
+        .snapshots()
+        .map((snapshot) {
+      final list = snapshot.docs.map((doc) => Property.fromMap(doc.data() as Map<String, dynamic>, doc.id)).toList();
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt)); // Sắp xếp giảm dần ở phía client
+      return list;
+    });
   }
 
-  // Cập nhật thông tin cơ sở
-  Future<void> updateProperty(PropertyModel property) {
-    return _db.collection('properties').doc(property.id).update(property.toMap());
+  // Thêm cơ sở mới 
+  Future<void> addProperty(Property property) async {
+    await _propertiesCollection
+        .doc(property.id.isNotEmpty ? property.id : null)
+        .set(property.toMap());
+  }
+
+  // Cập nhật cơ sở
+  Future<void> updateProperty(Property property) async {
+    await _propertiesCollection.doc(property.id).update(property.toMap());
+  }
+
+  // Cập nhật số lượng phòng của cơ sở
+  Future<void> updateRoomCount(String propertyId, int countDelta) async {
+    await _propertiesCollection.doc(propertyId).update({
+      'roomCount': FieldValue.increment(countDelta),
+    });
   }
 
   // Xóa cơ sở
-  Future<void> deleteProperty(String propertyId) {
-    return _db.collection('properties').doc(propertyId).delete();
-  }
-
-  // Lấy danh sách cơ sở theo ownerId (Realtime)
-  Stream<List<PropertyModel>> getProperties(String ownerId) {
-    return _db.collection('properties').where('ownerId', isEqualTo: ownerId).snapshots().map((snapshot) => snapshot.docs.map((doc) => PropertyModel.fromMap(doc.data(), doc.id)).toList());
-  }
-
-  // Cập nhật số lượng phòng
-  Future<void> updateRoomCount(String propertyId, int change) {
-    return _db.collection('properties').doc(propertyId).update({
-      'totalRooms': FieldValue.increment(change),
-    });
+  Future<void> deleteProperty(String propertyId) async {
+    await _propertiesCollection.doc(propertyId).delete();
   }
 }

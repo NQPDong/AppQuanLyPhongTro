@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import '../../models/room_model.dart';
+import '../../models/room.dart';
 import '../../services/room_service.dart';
 
 /// Dialog hiển thị chi tiết phòng + chức năng đổi trạng thái
 class RoomDetailDialog extends StatelessWidget {
-  final RoomModel room;
+  final Room room;
 
   const RoomDetailDialog({super.key, required this.room});
 
@@ -148,7 +148,7 @@ class RoomDetailDialog extends StatelessWidget {
   }
 
   Widget _buildStatusButton(BuildContext context, String status,
-      String label, Color color, RoomModel room) {
+      String label, Color color, Room room) {
     final isSelected = room.status == status;
     return Expanded(
       child: OutlinedButton(
