@@ -1,118 +1,206 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
+import 'firebase_options.dart';
+import 'providers/property_provider.dart';
+import 'providers/room_provider.dart';
+import 'screens/login_screen.dart';
+import 'screens/dashboard_screen.dart';
+import 'screens/property/property_screen.dart';
+import 'screens/tenants_screen.dart';
+import 'screens/statistics_screen.dart';
+import 'screens/settings_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-  runApp(const MyApp());
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  runApp(const QuanLyPhongTroApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class QuanLyPhongTroApp extends StatelessWidget {
+  const QuanLyPhongTroApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: .fromSeed(seedColor: Colors.deepPurple),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => PropertyProvider()),
+        ChangeNotifierProvider(create: (_) => RoomProvider()),
+      ],
+      child: MaterialApp(
+        title: 'Quản Lý Phòng Trọ',
+        theme: ThemeData(
+          useMaterial3: true,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: const Color(0xFF6366F1),
+            primary: const Color(0xFF6366F1),
+            secondary: const Color(0xFF10B981),
+            surface: const Color(0xFFF8FAFC),
+          ),
+          appBarTheme: const AppBarTheme(
+            centerTitle: true,
+            elevation: 0,
+            backgroundColor: Colors.transparent,
+            surfaceTintColor: Colors.transparent,
+            titleTextStyle: TextStyle(
+              color: Color(0xFF1E293B),
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          cardTheme: CardThemeData(
+            elevation: 0,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            color: Colors.white,
+          ),
+        ),
+        // Cấu hình Routes
+        initialRoute: '/login', // Mặc định vào Login trước
+        routes: {
+          '/login': (context) => const LoginScreen(),
+          '/': (context) => const MainLayout(),
+        },
+        debugShowCheckedModeBanner: false,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
+class MainLayout extends StatefulWidget {
+  const MainLayout({super.key});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<MainLayout> createState() => _MainLayoutState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _MainLayoutState extends State<MainLayout> {
+  int _selectedIndex = 0;
 
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+  @override
+  void initState() {
+    super.initState();
+    // Khởi tạo PropertyProvider với userId từ Firebase Auth
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        context.read<PropertyProvider>().init(user.uid);
+      }
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
+    final List<Widget> screens = [
+      DashboardScreen(),
+      const PropertyListScreen(), // Màn hình Cơ sở/Phòng trọ của Thành viên 2
+      const TenantsScreen(),
+      const StatisticsScreen(),
+      const SettingsScreen(),
+    ];
+
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
+        backgroundColor: Colors.white.withOpacity(0.95),
+        surfaceTintColor: Colors.transparent,
+        scrolledUnderElevation: 2,
+        title: Text(_selectedIndex == 0 
+            ? 'Tổng quan' 
+            : (_selectedIndex == 1 
+                ? 'Danh sách cơ sở' 
+                : (_selectedIndex == 2 
+                    ? 'Khách thuê' 
+                    : (_selectedIndex == 3 ? 'Báo cáo' : 'Hồ sơ cá nhân')))),
+        actions: [
+          Container(
+            margin: const EdgeInsets.only(right: 16),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.8),
+              shape: BoxShape.circle,
+            ),
+            child: PopupMenuButton<String>(
+              icon: const Icon(Icons.notifications_none, color: Color(0xFF1E293B)),
+              position: PopupMenuPosition.under,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  enabled: false,
+                  child: SizedBox(
+                    width: 280,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.notifications_active_rounded, color: Color(0xFF6366F1), size: 20),
+                            SizedBox(width: 8),
+                            Text('Thông báo', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E293B), fontSize: 16)),
+                          ],
+                        ),
+                        Divider(height: 16),
+                        Text(
+                          'Chào mừng bạn đến với hệ thống quản lý nhà trọ!', 
+                          style: TextStyle(color: Color(0xFF64748B), fontSize: 14),
+                          maxLines: 2,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: .center,
-          children: [
-            const Text('You have pushed the button this many times:'),
-            Text('$_counter', style: Theme.of(context).textTheme.headlineMedium),
+      body: screens[_selectedIndex],
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 20,
+              offset: const Offset(0, -5),
+            ),
+          ],
+        ),
+        child: NavigationBar(
+          height: 75,
+          elevation: 0,
+          backgroundColor: Colors.white,
+          selectedIndex: _selectedIndex,
+          onDestinationSelected: (index) => setState(() => _selectedIndex = index),
+          destinations: const [
+            NavigationDestination(
+              icon: Icon(Icons.grid_view_rounded),
+              selectedIcon: Icon(Icons.grid_view_rounded, color: Color(0xFF6366F1)),
+              label: 'Tổng quan',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.apartment_rounded),
+              selectedIcon: Icon(Icons.apartment_rounded, color: Color(0xFF6366F1)),
+              label: 'Nhà trọ',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.people_alt_rounded),
+              selectedIcon: Icon(Icons.people_alt_rounded, color: Color(0xFF6366F1)),
+              label: 'Khách thuê',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.bar_chart_rounded),
+              selectedIcon: Icon(Icons.bar_chart_rounded, color: Color(0xFF6366F1)),
+              label: 'Thống kê',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.person_pin_rounded),
+              selectedIcon: Icon(Icons.person_pin_rounded, color: Color(0xFF6366F1)),
+              label: 'Cài đặt',
+            ),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(onPressed: _incrementCounter, tooltip: 'Increment', child: const Icon(Icons.add)),
     );
   }
 }
