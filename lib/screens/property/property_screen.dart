@@ -1,33 +1,51 @@
 import 'package:flutter/material.dart';
-import '../../models/property_model.dart';
+import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../../models/property.dart';
+import '../../providers/property_provider.dart';
 import '../../services/property_service.dart';
 import 'add_property_dialog.dart';
-import '../room/room_grid_screen.dart';
+import '../room/room_screen.dart';
 
-class PropertyListScreen extends StatelessWidget {
+class PropertyListScreen extends StatefulWidget {
   const PropertyListScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final String ownerId = "test_owner_id_123";
+  State<PropertyListScreen> createState() => _PropertyListScreenState();
+}
 
+class _PropertyListScreenState extends State<PropertyListScreen> {
+  String get ownerId => FirebaseAuth.instance.currentUser?.uid ?? '';
+
+  @override
+  void initState() {
+    super.initState();
+    // Khởi tạo Provider: lắng nghe dữ liệu realtime từ Firebase
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (ownerId.isNotEmpty) {
+        context.read<PropertyProvider>().init(ownerId);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Cơ sở của tôi"),
         elevation: 0,
       ),
-      // SỬ DỤNG STREAMBUILDER ĐỂ LẤY DỮ LIỆU THỰC TẾ
-      body: StreamBuilder<List<PropertyModel>>(
-        stream: PropertyService().getProperties(ownerId),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
+      // SỬ DỤNG CONSUMER ĐỂ LẤY DỮ LIỆU TỪ PROVIDER
+      body: Consumer<PropertyProvider>(
+        builder: (context, provider, child) {
+          if (provider.isLoading) {
             return const Center(child: CircularProgressIndicator());
           }
-          if (snapshot.hasError) {
+          if (provider.error != null) {
             return Center(
-                child: Text("Lỗi tải dữ liệu: ${snapshot.error}"));
+                child: Text("Lỗi tải dữ liệu: ${provider.error}"));
           }
-          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          if (provider.properties.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -46,7 +64,7 @@ class PropertyListScreen extends StatelessWidget {
             );
           }
 
-          final properties = snapshot.data!;
+          final properties = provider.properties;
           return ListView.builder(
             padding: const EdgeInsets.all(12),
             itemCount: properties.length,
@@ -72,7 +90,7 @@ class PropertyListScreen extends StatelessWidget {
   }
 
   Widget _buildPropertyCard(
-      BuildContext context, PropertyModel property, String ownerId) {
+      BuildContext context, Property property, String ownerId) {
     return Card(
       elevation: 3,
       margin: const EdgeInsets.only(bottom: 12),
@@ -192,7 +210,7 @@ class PropertyListScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPropertyImage(PropertyModel property) {
+  Widget _buildPropertyImage(Property property) {
     if (property.imageUrl.isNotEmpty) {
       return SizedBox(
         height: 160,
@@ -227,7 +245,7 @@ class PropertyListScreen extends StatelessWidget {
   }
 
   void _editProperty(
-      BuildContext context, PropertyModel property, String ownerId) {
+      BuildContext context, Property property, String ownerId) {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -238,7 +256,7 @@ class PropertyListScreen extends StatelessWidget {
     );
   }
 
-  void _confirmDeleteProperty(BuildContext context, PropertyModel property) {
+  void _confirmDeleteProperty(BuildContext context, Property property) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(

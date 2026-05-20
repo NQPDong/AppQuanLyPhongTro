@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import '../../models/room_model.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../../models/room.dart';
 import '../../services/room_service.dart';
 import '../../services/property_service.dart';
 
 class AddRoomDialog extends StatefulWidget {
   final String propertyId;
-  final RoomModel? room; // null = thêm mới, có giá trị = sửa
+  final Room? room; // null = thêm mới, có giá trị = sửa
 
   const AddRoomDialog({
     super.key,
@@ -58,17 +59,19 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
       setState(() => _isLoading = true);
 
       try {
-        final room = RoomModel(
+        final room = Room(
           id: isEditing
               ? widget.room!.id
               : DateTime.now().millisecondsSinceEpoch.toString(),
           propertyId: widget.propertyId,
+          ownerId: FirebaseAuth.instance.currentUser?.uid ?? '',
           roomNumber: _roomNumberController.text.trim(),
           floor: int.tryParse(_floorController.text) ?? 1,
           area: double.tryParse(_areaController.text) ?? 0,
           price: double.tryParse(_priceController.text) ?? 0,
           status: isEditing ? widget.room!.status : 'available',
           description: _descriptionController.text.trim(),
+          createdAt: isEditing ? widget.room!.createdAt : DateTime.now(),
         );
 
         if (isEditing) {
