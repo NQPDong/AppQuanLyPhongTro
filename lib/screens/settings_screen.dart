@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
+import '../services/user_service.dart';
+import '../models/user_profile.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -11,23 +13,129 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final user = FirebaseAuth.instance.currentUser;
+  final _userService = UserService();
+  UserProfile? _userProfile;
+  bool _isProfileLoading = true;
 
-  Future<void> _updateName() async {
-    final controller = TextEditingController(text: user?.displayName);
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    if (user != null) {
+      final profile = await _userService.getUserProfile(user!.uid, user!.email ?? '');
+      if (mounted) {
+        setState(() {
+          _userProfile = profile;
+          _isProfileLoading = false;
+        });
+      }
+    } else {
+      if (mounted) {
+        setState(() {
+          _isProfileLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _editProfileDialog() async {
+    if (_userProfile == null) return;
+
+    final nameController = TextEditingController(
+        text: _userProfile!.fullName.isNotEmpty ? _userProfile!.fullName : (user?.displayName ?? ''));
+    final phoneController = TextEditingController(text: _userProfile!.phone);
+    final zaloController = TextEditingController(text: _userProfile!.zalo);
+    final formKey = GlobalKey<FormState>();
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Cập nhật tên'),
-        content: TextField(controller: controller, decoration: const InputDecoration(hintText: 'Nhập tên mới')),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Thông tin cá nhân',
+          style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+        ),
+        content: SingleChildScrollView(
+          child: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: nameController,
+                  textInputAction: TextInputAction.next,
+                  decoration: InputDecoration(
+                    labelText: 'Họ và tên',
+                    prefixIcon: const Icon(Icons.person_outline_rounded),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  validator: (value) =>
+                      value == null || value.isEmpty ? 'Vui lòng nhập họ tên' : null,
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: phoneController,
+                  keyboardType: TextInputType.phone,
+                  textInputAction: TextInputAction.next,
+                  decoration: InputDecoration(
+                    labelText: 'Số điện thoại',
+                    prefixIcon: const Icon(Icons.phone_outlined),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: zaloController,
+                  textInputAction: TextInputAction.done,
+                  decoration: InputDecoration(
+                    labelText: 'Số Zalo / Link Zalo',
+                    prefixIcon: const Icon(Icons.chat_bubble_outline_rounded),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Hủy')),
           TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Hủy', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF6366F1),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
             onPressed: () async {
-              await user?.updateDisplayName(controller.text);
-              if (mounted) {
-                setState(() {});
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã cập nhật tên thành công!')));
+              if (formKey.currentState!.validate()) {
+                final updatedProfile = UserProfile(
+                  id: _userProfile!.id,
+                  fullName: nameController.text.trim(),
+                  phone: phoneController.text.trim(),
+                  zalo: zaloController.text.trim(),
+                  email: _userProfile!.email,
+                );
+
+                final navigator = Navigator.of(context);
+                final scaffoldMessenger = ScaffoldMessenger.of(context);
+
+                await _userService.updateUserProfile(updatedProfile);
+                await user?.updateDisplayName(nameController.text.trim());
+
+                if (mounted) {
+                  setState(() {
+                    _userProfile = updatedProfile;
+                  });
+                  navigator.pop();
+                  scaffoldMessenger.showSnackBar(
+                    const SnackBar(content: Text('Đã cập nhật thông tin cá nhân!')),
+                  );
+                }
               }
             },
             child: const Text('Lưu'),
@@ -50,99 +158,146 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final displayName = user?.displayName ?? user?.email?.split('@')[0] ?? 'Admin';
+    final displayName = _userProfile != null && _userProfile!.fullName.isNotEmpty
+        ? _userProfile!.fullName
+        : (user?.displayName ?? user?.email?.split('@')[0] ?? 'Admin');
     final email = user?.email ?? 'Chưa đăng nhập';
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      child: Column(
-        children: [
-          const SizedBox(height: kToolbarHeight + 30),
-          // Phần Profile Header
-          Center(
+
+    return _isProfileLoading
+        ? const Center(child: CircularProgressIndicator())
+        : SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
             child: Column(
               children: [
-                Stack(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: const Color(0xFF6366F1), width: 2),
-                      ),
-                      child: const CircleAvatar(
-                        radius: 50,
-                        backgroundColor: Color(0xFFF1F5F9),
-                        child: Icon(Icons.person, size: 60, color: Color(0xFF6366F1)),
-                      ),
-                    ),
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: InkWell(
-                        onTap: _updateName,
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: const BoxDecoration(
-                            color: Color(0xFF6366F1),
-                            shape: BoxShape.circle,
+                const SizedBox(height: kToolbarHeight + 30),
+                // Phần Profile Header
+                Center(
+                  child: Column(
+                    children: [
+                      Stack(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(color: const Color(0xFF6366F1), width: 2),
+                            ),
+                            child: const CircleAvatar(
+                              radius: 50,
+                              backgroundColor: Color(0xFFF1F5F9),
+                              child: Icon(Icons.person, size: 60, color: Color(0xFF6366F1)),
+                            ),
                           ),
-                          child: const Icon(Icons.edit_rounded, color: Colors.white, size: 16),
-                        ),
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: InkWell(
+                              onTap: _editProfileDialog,
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFF6366F1),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.edit_rounded, color: Colors.white, size: 16),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
+                      const SizedBox(height: 16),
+                      Text(
+                        displayName,
+                        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        email,
+                        style: const TextStyle(color: Color(0xFF64748B), fontSize: 14),
+                      ),
+                      if (_userProfile != null && _userProfile!.phone.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.phone_android_outlined, size: 15, color: Colors.grey[500]),
+                            const SizedBox(width: 4),
+                            Text(
+                              _userProfile!.phone,
+                              style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                            ),
+                            if (_userProfile!.zalo.isNotEmpty) ...[
+                              const SizedBox(width: 12),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFEEF2FF),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(color: const Color(0xFFE0E7FF)),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.chat_bubble_outline_rounded, size: 11, color: Color(0xFF4F46E5)),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'Zalo: ${_userProfile!.zalo}',
+                                      style: const TextStyle(color: Color(0xFF4F46E5), fontSize: 11, fontWeight: FontWeight.w600),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 40),
+                // Danh mục cài đặt
+                _buildSettingsSection(
+                  'Tài khoản',
+                  [
+                    _buildSettingsTile(
+                        Icons.person_outline_rounded, 'Thông tin cá nhân', 'Chỉnh sửa tên, sđt, zalo...',
+                        onTap: _editProfileDialog),
+                    _buildSettingsTile(
+                        Icons.lock_outline_rounded, 'Mật khẩu & Bảo mật', 'Thay đổi mật khẩu đăng nhập',
+                        onTap: _resetPassword),
                   ],
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  displayName,
-                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+
+                const SizedBox(height: 40),
+                // Nút Đăng xuất
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        final navigator = Navigator.of(context);
+                        await AuthService().signOut();
+                        if (mounted) {
+                          navigator.pushNamedAndRemoveUntil('/login', (route) => false);
+                        }
+                      },
+                      icon: const Icon(Icons.logout_rounded),
+                      label: const Text('Đăng xuất tài khoản', style: TextStyle(fontWeight: FontWeight.bold)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFFEE2E2),
+                        foregroundColor: const Color(0xFFEF4444),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
+                    ),
+                  ),
                 ),
-                Text(
-                  email,
-                  style: const TextStyle(color: Color(0xFF64748B), fontSize: 14),
-                ),
+                const SizedBox(height: 100),
               ],
             ),
-          ),
-          const SizedBox(height: 40),
-          // Danh mục cài đặt
-          _buildSettingsSection(
-            'Tài khoản',
-            [
-              _buildSettingsTile(Icons.person_outline_rounded, 'Thông tin cá nhân', 'Chỉnh sửa tên, email...', onTap: _updateName),
-              _buildSettingsTile(Icons.lock_outline_rounded, 'Mật khẩu & Bảo mật', 'Thay đổi mật khẩu đăng nhập', onTap: _resetPassword),
-            ],
-          ),
-
-          const SizedBox(height: 40),
-          // Nút Đăng xuất
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton.icon(
-                onPressed: () async {
-                  await AuthService().signOut();
-                  if (mounted) {
-                    Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
-                  }
-                },
-                icon: const Icon(Icons.logout_rounded),
-                label: const Text('Đăng xuất tài khoản', style: TextStyle(fontWeight: FontWeight.bold)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFEE2E2),
-                  foregroundColor: const Color(0xFFEF4444),
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 100),
-        ],
-      ),
-    );
+          );
   }
 
   Widget _buildSettingsSection(String title, List<Widget> tiles) {

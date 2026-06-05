@@ -89,12 +89,27 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
     );
   }
 
+  final List<String> _defaultPropertyImages = const [
+    'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1582407947304-fd86f028f716?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=800&q=80',
+  ];
+
+  String _getDefaultPropertyImage(String propertyId) {
+    final index = propertyId.hashCode.abs() % _defaultPropertyImages.length;
+    return _defaultPropertyImages[index];
+  }
+
   Widget _buildPropertyCard(
       BuildContext context, Property property, String ownerId) {
     return Card(
-      elevation: 3,
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: Colors.grey.shade200, width: 1),
+      ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () {
@@ -112,7 +127,7 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
 
             // Thông tin cơ sở
             Padding(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
                   // Thông tin bên trái
@@ -125,15 +140,16 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 18,
+                            color: Color(0xFF1E293B),
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 6),
                         Row(
                           children: [
-                            Icon(Icons.location_on,
-                                size: 14, color: Colors.grey[600]),
+                            Icon(Icons.location_on_outlined,
+                                size: 16, color: Colors.grey[500]),
                             const SizedBox(width: 4),
                             Expanded(
                               child: Text(
@@ -146,16 +162,16 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 6),
                         Row(
                           children: [
-                            Icon(Icons.meeting_room,
-                                size: 14, color: Colors.blueAccent),
+                            const Icon(Icons.meeting_room_outlined,
+                                size: 16, color: Color(0xFF6366F1)),
                             const SizedBox(width: 4),
                             Text(
                               '${property.totalRooms} phòng',
                               style: const TextStyle(
-                                color: Colors.blueAccent,
+                                color: Color(0xFF6366F1),
                                 fontWeight: FontWeight.w600,
                                 fontSize: 13,
                               ),
@@ -182,7 +198,7 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
                         value: 'edit',
                         child: Row(
                           children: [
-                            Icon(Icons.edit, color: Colors.blue, size: 20),
+                            Icon(Icons.edit_outlined, color: Colors.blue, size: 20),
                             SizedBox(width: 8),
                             Text('Sửa cơ sở'),
                           ],
@@ -192,7 +208,7 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
                         value: 'delete',
                         child: Row(
                           children: [
-                            Icon(Icons.delete, color: Colors.red, size: 20),
+                            Icon(Icons.delete_outline, color: Colors.red, size: 20),
                             SizedBox(width: 8),
                             Text('Xóa cơ sở',
                                 style: TextStyle(color: Colors.red)),
@@ -211,35 +227,25 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
   }
 
   Widget _buildPropertyImage(Property property) {
-    if (property.imageUrl.isNotEmpty) {
-      return SizedBox(
-        height: 160,
-        width: double.infinity,
-        child: Image.network(
-          property.imageUrl,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) {
-            return _buildPlaceholderImage();
-          },
-        ),
-      );
-    }
-    return _buildPlaceholderImage();
-  }
+    final imageUrl = property.imageUrl.isNotEmpty
+        ? property.imageUrl
+        : _getDefaultPropertyImage(property.id);
 
-  Widget _buildPlaceholderImage() {
-    return Container(
-      height: 160,
+    return SizedBox(
+      height: 170,
       width: double.infinity,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.blueAccent.shade100, Colors.blueAccent.shade400],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: const Center(
-        child: Icon(Icons.home_work, size: 60, color: Colors.white70),
+      child: Image.network(
+        imageUrl,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            height: 170,
+            color: Colors.grey[100],
+            child: Center(
+              child: Icon(Icons.home_work_outlined, size: 50, color: Colors.grey[400]),
+            ),
+          );
+        },
       ),
     );
   }

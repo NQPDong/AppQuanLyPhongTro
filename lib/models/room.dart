@@ -10,6 +10,7 @@ class Room {
   final double price;
   final String description;
   final String status; // available, rented, maintenance
+  final String imageUrl;
   final DateTime createdAt;
 
   Room({
@@ -22,6 +23,7 @@ class Room {
     required this.price,
     this.description = '',
     this.status = 'available',
+    this.imageUrl = '',
     required this.createdAt,
   });
 
@@ -36,6 +38,7 @@ class Room {
       price: (data['price'] ?? 0).toDouble(),
       description: data['description'] ?? '',
       status: data['status'] ?? 'available',
+      imageUrl: data['imageUrl'] ?? '',
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
@@ -50,6 +53,7 @@ class Room {
       'price': price,
       'description': description,
       'status': status,
+      'imageUrl': imageUrl,
       'createdAt': Timestamp.fromDate(createdAt),
     };
   }

@@ -161,7 +161,7 @@ class _RoomGridScreenState extends State<RoomGridScreen> {
       gridDelegate:
           const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        childAspectRatio: 0.78,
+        childAspectRatio: 0.64,
         crossAxisSpacing: 10,
         mainAxisSpacing: 10,
       ),
@@ -172,13 +172,40 @@ class _RoomGridScreenState extends State<RoomGridScreen> {
     );
   }
 
+  String _getDefaultRoomImage(String status, String roomId) {
+    final Map<String, List<String>> statusImages = {
+      'available': [
+        'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&w=500&q=80',
+        'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?auto=format&fit=crop&w=500&q=80',
+        'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=500&q=80',
+      ],
+      'rented': [
+        'https://images.unsplash.com/photo-1505691938895-1758d7feb511?auto=format&fit=crop&w=500&q=80',
+        'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=500&q=80',
+      ],
+      'maintenance': [
+        'https://images.unsplash.com/photo-1581094288338-2314dddb7ecc?auto=format&fit=crop&w=500&q=80',
+      ],
+    };
+
+    final images = statusImages[status] ?? statusImages['available']!;
+    final index = roomId.hashCode.abs() % images.length;
+    return images[index];
+  }
+
   // ROOM CARD 
   Widget _buildRoomCard(Room room) {
     final statusInfo = _getStatusInfo(room.status);
+    final roomImage = room.imageUrl.isNotEmpty
+        ? room.imageUrl
+        : _getDefaultRoomImage(room.status, room.id);
 
     return Card(
-      elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.grey.shade200, width: 1),
+      ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () {
@@ -188,131 +215,158 @@ class _RoomGridScreenState extends State<RoomGridScreen> {
             builder: (context) => RoomDetailDialog(room: room),
           );
         },
-        child: Stack(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            // Ảnh phòng
+            SizedBox(
+              height: 100,
+              width: double.infinity,
+              child: Stack(
+                fit: StackFit.expand,
                 children: [
-                  // Header: số phòng + menu
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          "Phòng ${room.roomNumber}",
-                          style: const TextStyle(
-                              fontSize: 17, fontWeight: FontWeight.bold),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                  Image.network(
+                    roomImage,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        color: Colors.grey[100],
+                        child: Center(
+                          child: Icon(Icons.meeting_room_outlined, size: 30, color: Colors.grey[400]),
                         ),
-                      ),
-                      // Menu 3 chấm: sửa / xóa
-                      SizedBox(
-                        width: 28,
-                        height: 28,
-                        child: PopupMenuButton<String>(
-                          padding: EdgeInsets.zero,
-                          iconSize: 18,
-                          icon: const Icon(Icons.more_vert,
-                              size: 18, color: Colors.grey),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
-                          onSelected: (value) {
-                            if (value == 'edit') {
-                              _editRoom(room);
-                            } else if (value == 'delete') {
-                              _confirmDeleteRoom(room);
-                            }
-                          },
-                          itemBuilder: (context) => [
-                            const PopupMenuItem(
-                              value: 'edit',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.edit,
-                                      color: Colors.blue, size: 18),
-                                  SizedBox(width: 8),
-                                  Text('Sửa phòng'),
-                                ],
-                              ),
-                            ),
-                            const PopupMenuItem(
-                              value: 'delete',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.delete,
-                                      color: Colors.red, size: 18),
-                                  SizedBox(width: 8),
-                                  Text('Xóa phòng',
-                                      style: TextStyle(color: Colors.red)),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                      );
+                    },
                   ),
-
-                  const Spacer(),
-
-                  // Icon phòng 
-                  Center(
+                  // Overlay bóng mờ nhẹ hoặc tag số tầng
+                  Positioned(
+                    top: 6,
+                    left: 6,
                     child: Container(
-                      padding: const EdgeInsets.all(14),
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: statusInfo['color'].withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(16),
+                        color: Colors.black.withOpacity(0.6),
+                        borderRadius: BorderRadius.circular(4),
                       ),
-                      child: Icon(Icons.meeting_room,
-                          size: 32, color: statusInfo['color']),
-                    ),
-                  ),
-
-                  const Spacer(),
-
-                  // Giá
-                  Text(
-                    _formatPrice(room.price),
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.blueAccent,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-
-                  // Diện tích
-                  Text(
-                    '${room.area.toStringAsFixed(0)} m²  •  Tầng ${room.floor}',
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                  ),
-                  const SizedBox(height: 8),
-
-                  // Status badge
-                  Container(
-                    width: double.infinity,
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: statusInfo['color'].withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                          color: statusInfo['color'].withOpacity(0.3)),
-                    ),
-                    child: Text(
-                      statusInfo['text'],
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: statusInfo['color'],
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
+                      child: Text(
+                        'Tầng ${room.floor}',
+                        style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w500),
                       ),
                     ),
                   ),
                 ],
+              ),
+            ),
+            
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header: số phòng + menu
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            "Phòng ${room.roomNumber}",
+                            style: const TextStyle(
+                                fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        // Menu 3 chấm: sửa / xóa
+                        SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: PopupMenuButton<String>(
+                            padding: EdgeInsets.zero,
+                            iconSize: 16,
+                            icon: const Icon(Icons.more_vert,
+                                size: 16, color: Colors.grey),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                            onSelected: (value) {
+                              if (value == 'edit') {
+                                _editRoom(room);
+                              } else if (value == 'delete') {
+                                _confirmDeleteRoom(room);
+                              }
+                            },
+                            itemBuilder: (context) => [
+                              const PopupMenuItem(
+                                value: 'edit',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.edit_outlined,
+                                        color: Colors.blue, size: 18),
+                                    SizedBox(width: 8),
+                                    Text('Sửa phòng'),
+                                  ],
+                                ),
+                              ),
+                              const PopupMenuItem(
+                                value: 'delete',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.delete_outline,
+                                        color: Colors.red, size: 18),
+                                    SizedBox(width: 8),
+                                    Text('Xóa phòng',
+                                        style: TextStyle(color: Colors.red)),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const Spacer(),
+
+                    // Giá
+                    Text(
+                      _formatPrice(room.price),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF6366F1),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+
+                    // Diện tích
+                    Text(
+                      '${room.area.toStringAsFixed(0)} m²',
+                      style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                    ),
+                    const SizedBox(height: 6),
+
+                    // Status badge
+                    Container(
+                      width: double.infinity,
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: statusInfo['color'].withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                            color: statusInfo['color'].withOpacity(0.2)),
+                      ),
+                      child: Text(
+                        statusInfo['text'],
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: statusInfo['color'],
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],

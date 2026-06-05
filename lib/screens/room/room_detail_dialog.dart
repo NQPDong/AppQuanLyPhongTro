@@ -8,88 +8,141 @@ class RoomDetailDialog extends StatelessWidget {
 
   const RoomDetailDialog({super.key, required this.room});
 
+  String _getDefaultRoomImage(String status, String roomId) {
+    final Map<String, List<String>> statusImages = {
+      'available': [
+        'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&w=500&q=80',
+        'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?auto=format&fit=crop&w=500&q=80',
+        'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=500&q=80',
+      ],
+      'rented': [
+        'https://images.unsplash.com/photo-1505691938895-1758d7feb511?auto=format&fit=crop&w=500&q=80',
+        'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=500&q=80',
+      ],
+      'maintenance': [
+        'https://images.unsplash.com/photo-1581094288338-2314dddb7ecc?auto=format&fit=crop&w=500&q=80',
+      ],
+    };
+
+    final images = statusImages[status] ?? statusImages['available']!;
+    final index = roomId.hashCode.abs() % images.length;
+    return images[index];
+  }
+
   @override
   Widget build(BuildContext context) {
+    final roomImage = room.imageUrl.isNotEmpty
+        ? room.imageUrl
+        : _getDefaultRoomImage(room.status, room.id);
+
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header
-            Row(
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Ảnh phòng trọ tràn viền ở trên
+          SizedBox(
+            height: 160,
+            width: double.infinity,
+            child: Stack(
+              fit: StackFit.expand,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.blueAccent.withAlpha(25),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(Icons.meeting_room,
-                      color: Colors.blueAccent, size: 28),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Phòng ${room.roomNumber}',
-                        style: const TextStyle(
-                            fontSize: 22, fontWeight: FontWeight.bold),
+                Image.network(
+                  roomImage,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      color: Colors.grey[200],
+                      child: const Center(
+                        child: Icon(Icons.meeting_room, size: 50, color: Colors.grey),
                       ),
-                      const SizedBox(height: 4),
-                      _buildStatusBadge(room.status),
-                    ],
+                    );
+                  },
+                ),
+                // Nút đóng ở góc trên bên phải
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.5),
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white, size: 20),
+                      onPressed: () => Navigator.pop(context),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 32,
+                        minHeight: 32,
+                      ),
+                    ),
                   ),
                 ),
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close),
+              ],
+            ),
+          ),
+
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Số phòng + Badge trạng thái
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Phòng ${room.roomNumber}',
+                      style: const TextStyle(
+                          fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+                    ),
+                    _buildStatusBadge(room.status),
+                  ],
+                ),
+
+                const Divider(height: 24, thickness: 1),
+
+                // Thông tin chi tiết
+                _buildInfoRow(Icons.stairs_outlined, 'Tầng', '${room.floor}'),
+                const SizedBox(height: 12),
+                _buildInfoRow(
+                    Icons.square_foot_outlined, 'Diện tích', '${room.area.toStringAsFixed(1)} m²'),
+                const SizedBox(height: 12),
+                _buildInfoRow(
+                    Icons.monetization_on_outlined, 'Giá thuê', _formatPrice(room.price)),
+                const SizedBox(height: 12),
+                if (room.description.isNotEmpty) ...[
+                  _buildInfoRow(Icons.description_outlined, 'Mô tả', room.description),
+                  const SizedBox(height: 12),
+                ],
+
+                const Divider(height: 24, thickness: 1),
+
+                // Đổi trạng thái
+                const Text(
+                  'Cập nhật trạng thái:',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF64748B)),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    _buildStatusButton(
+                        context, 'available', 'Trống', Colors.green, room),
+                    const SizedBox(width: 8),
+                    _buildStatusButton(
+                        context, 'rented', 'Đã thuê', Colors.red, room),
+                    const SizedBox(width: 8),
+                    _buildStatusButton(
+                        context, 'maintenance', 'Bảo trì', Colors.orange, room),
+                  ],
                 ),
               ],
             ),
-
-            const Divider(height: 24),
-
-            // Thông tin chi tiết
-            _buildInfoRow(Icons.stairs, 'Tầng', '${room.floor}'),
-            const SizedBox(height: 12),
-            _buildInfoRow(
-                Icons.square_foot, 'Diện tích', '${room.area.toStringAsFixed(1)} m²'),
-            const SizedBox(height: 12),
-            _buildInfoRow(
-                Icons.attach_money, 'Giá thuê', _formatPrice(room.price)),
-            const SizedBox(height: 12),
-            if (room.description.isNotEmpty) ...[
-              _buildInfoRow(Icons.description, 'Mô tả', room.description),
-              const SizedBox(height: 12),
-            ],
-
-            const Divider(height: 24),
-
-            // Đổi trạng thái
-            const Text(
-              'Đổi trạng thái:',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                _buildStatusButton(
-                    context, 'available', 'Trống', Colors.green, room),
-                const SizedBox(width: 8),
-                _buildStatusButton(
-                    context, 'rented', 'Đã thuê', Colors.red, room),
-                const SizedBox(width: 8),
-                _buildStatusButton(
-                    context, 'maintenance', 'Bảo trì', Colors.orange, room),
-              ],
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

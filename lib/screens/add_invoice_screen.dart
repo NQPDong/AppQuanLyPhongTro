@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../models/contract.dart';
 import '../models/invoice.dart';
+import '../models/room.dart';
 import '../services/invoice_service.dart';
+import '../services/room_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class AddInvoiceScreen extends StatefulWidget {
@@ -24,6 +26,37 @@ class _AddInvoiceScreenState extends State<AddInvoiceScreen> {
   
   double _total = 0;
 
+  final RoomService _roomService = RoomService();
+  double _roomPrice = 0;
+  bool _isLoadingRoom = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchRoomDetails();
+  }
+
+  Future<void> _fetchRoomDetails() async {
+    try {
+      final room = await _roomService.getRoomById(widget.contract.roomId);
+      if (room != null) {
+        setState(() {
+          _roomPrice = room.price;
+          _isLoadingRoom = false;
+          _calculateTotal();
+        });
+      } else {
+        setState(() {
+          _isLoadingRoom = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _isLoadingRoom = false;
+      });
+    }
+  }
+
   void _calculateTotal() {
     double oldE = double.tryParse(_oldElecController.text) ?? 0;
     double newE = double.tryParse(_newElecController.text) ?? 0;
@@ -35,25 +68,33 @@ class _AddInvoiceScreenState extends State<AddInvoiceScreen> {
     double waterTotal = (newW - oldW) * waterPrice;
     
     setState(() {
-      _total = elecTotal + waterTotal + sFee;
+      _total = _roomPrice + elecTotal + waterTotal + sFee;
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoadingRoom) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Tạo hóa đơn')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
     return Scaffold(
       appBar: AppBar(title: const Text('Tạo hóa đơn')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            Text('Hóa đơn cho hợp đồng ${widget.contract.id}'),
+            Text('Hóa đơn cho hợp đồng ${widget.contract.code.isNotEmpty ? widget.contract.code : widget.contract.id}'),
+            const SizedBox(height: 8),
+            Text('Tiền phòng hằng tháng: ${_roomPrice.toStringAsFixed(0)} VNĐ', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 16),
-            TextField(controller: _oldElecController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Số điện cũ'), onChanged: (_) => _calculateTotal()),
-            TextField(controller: _newElecController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Số điện mới'), onChanged: (_) => _calculateTotal()),
-            TextField(controller: _oldWaterController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Số nước cũ'), onChanged: (_) => _calculateTotal()),
-            TextField(controller: _newWaterController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Số nước mới'), onChanged: (_) => _calculateTotal()),
-            TextField(controller: _serviceFeeController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Phí dịch vụ'), onChanged: (_) => _calculateTotal()),
+            TextField(controller: _oldElecController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Số điện cũ', suffixText: 'kWh'), onChanged: (_) => _calculateTotal()),
+            TextField(controller: _newElecController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Số điện mới', suffixText: 'kWh'), onChanged: (_) => _calculateTotal()),
+            TextField(controller: _oldWaterController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Số nước cũ', suffixText: 'm³'), onChanged: (_) => _calculateTotal()),
+            TextField(controller: _newWaterController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Số nước mới', suffixText: 'm³'), onChanged: (_) => _calculateTotal()),
+            TextField(controller: _serviceFeeController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Phí dịch vụ', suffixText: 'VNĐ'), onChanged: (_) => _calculateTotal()),
             const SizedBox(height: 24),
             Text('Tổng cộng: $_total VNĐ', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             const SizedBox(height: 24),

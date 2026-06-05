@@ -72,4 +72,13 @@ class RoomService {
       await _propertyService.updateRoomCount(propertyId, -1);
     }
   }
+
+  // Lấy chi tiết phòng theo roomId
+  Future<Room?> getRoomById(String roomId) async {
+    final doc = await _roomsCollection.doc(roomId).get();
+    if (doc.exists && doc.data() != null) {
+      return Room.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+    }
+    return null;
+  }
 }
