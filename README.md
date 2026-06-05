@@ -6,27 +6,13 @@
 - **Xác thực người dùng**: Hệ thống đăng nhập và phân quyền bảo mật thông qua Firebase Authentication.
 - **Quản lý dữ liệu thời gian thực**: Sử dụng Cloud Firestore để đồng bộ hóa danh sách phòng, dịch vụ và thông tin khách hàng ngay lập tức.
 - **Hệ thống ổn định**: Tích hợp Firebase Core giúp ứng dụng kết nối mượt mà và tin cậy với các dịch vụ backend.
-- **Giao diện hiện đại**: Sử dụng Material Design và các icon tinh tế từ Cupertino Icons.
+- **Giao diện hiện đại**: Giao diện đẹp mắt, trực quan và thân thiện với người dùng.
 
 ## 🛠 Tech Stack
-- **Ngôn ngữ**: Dart.
-- **Framework**: Flutter (v3.10.7+).
-- **Backend**: Firebase (Firestore, Auth, Core).
-- **Công cụ phát triển**: Android Studio / VS Code.
-
-## 📂 Cấu trúc thư mục
-```plaintext
-app_quanly_phong/
-├── lib/ 
-│   ├── main.dart         # Điểm khởi đầu của ứng dụng
-│   ├── models/           # Định nghĩa các đối tượng dữ liệu
-│   ├── screens/          # Giao diện các màn hình chức năng
-│   ├── services/         # Xử lý logic Firebase (Auth, Firestore)
-│   └── widgets/          # Các thành phần giao diện dùng chung
-├── android/              # Cấu hình cho nền tảng Android
-├── ios/                  # Cấu hình cho nền tảng iOS
-└── pubspec.yaml          # Quản lý thư viện và phân phiên bản
-```
+- **Ngôn ngữ**: Dart
+- **Framework**: Flutter
+- **Backend**: Firebase (Firestore, Auth, Core)
+- **Công cụ phát triển**: Android Studio / VS Code
 
 ---
 
@@ -35,31 +21,33 @@ app_quanly_phong/
 Tài liệu này hướng dẫn cách cấu hình và chạy mã nguồn dự án Flutter này trên một máy tính mới.
 
 ### 1. Yêu cầu hệ thống (Prerequisites)
+
 Để chạy được dự án, máy tính của bạn cần cài đặt sẵn các phần mềm sau:
 - **[Flutter SDK](https://docs.flutter.dev/get-started/install)** (Đảm bảo đã thêm đường dẫn `flutter\bin` vào biến môi trường `Path`).
 - Trình soạn thảo mã: **[Visual Studio Code](https://code.visualstudio.com/)** hoặc **[Android Studio](https://developer.android.com/studio)** (nên cài thêm các extension/plugin cho Flutter và Dart).
 - Để chạy ứng dụng như một phần mềm Windows Desktop, máy tính phải được bật **Developer Mode**.
 
+---
+
 ### 2. Các bước khởi chạy dự án
 
-**Bước 1: Clone repository**
-```bash
-git clone https://github.com/NQPDong/AppQuanLyPhongTro.git
-```
+**Bước 1: Mở dự án**
+Mở thư mục `quan_ly_phong_tro` bằng trình soạn thảo mã (VS Code hoặc Android Studio).
 
 **Bước 2: Cập nhật thư viện (Dependencies)**
-Mở thư mục `quan_ly_phong_tro` bằng VS Code hoặc Android Studio. Mở Terminal tại thư mục gốc và chạy các lệnh sau:
+Mở Terminal tại thư mục gốc của dự án (trong VS Code nhấn `` Ctrl + ` ``) và chạy lần lượt các lệnh sau:
 ```bash
 flutter clean
 flutter pub get
+
+* nếu lỗi "Building with plugins requires symlink support.
+Please enable Developer Mode in your system settings. Run
+  start ms-settings:developers
+to open settings."
+ Thì chạy lệnh start ms-settings:developers trên cmd  VÀ BẬT DEVELOPER MODE LÊN
 ```
-*Lưu ý: Nếu bị lỗi "Building with plugins requires symlink support. Please enable Developer Mode...", bạn hãy chạy lệnh `start ms-settings:developers` trên cmd và BẬT DEVELOPER MODE lên.*
 
-**Bước 3: Cấu hình Firebase**
-- Tải file `google-services.json` từ Firebase Console và đặt vào thư mục `android/app/`.
-- Tải file `GoogleService-Info.plist` và đặt vào thư mục `ios/Runner/`.
-
-**Bước 4: Chạy ứng dụng**
+**Bước 3: Chạy ứng dụng**
 Để chạy ứng dụng, bạn có thể nhấn `F5` trên VS Code hoặc gõ lệnh sau vào Terminal:
 ```bash
 flutter run
@@ -70,7 +58,9 @@ flutter run
 
 ## 🛠 Khắc phục các lỗi thường gặp (Troubleshooting)
 
-### 1. Lỗi Developer Mode trên Windows
+Dưới đây là một số lỗi bạn có thể gặp trong quá trình cài đặt môi trường mới và cách khắc phục:
+
+### 3.1. Lỗi Developer Mode trên Windows
 Khi build ứng dụng cho Windows, bạn có thể gặp thông báo:
 > *Please enable Developer Mode in your system settings. Run start ms-settings:developers to open settings.*
 
@@ -82,7 +72,7 @@ Khi build ứng dụng cho Windows, bạn có thể gặp thông báo:
 2. Tại cửa sổ Settings vừa mở, bật công tắc **Developer Mode** (Chế độ nhà phát triển) sang trạng thái **On**.
 3. Quay lại Terminal và chạy lại `flutter run`.
 
-### 2. Lỗi liên quan đến Firebase & Môi trường
+### 3.2. Lỗi liên quan đến Firebase & Môi trường
 Dự án này sử dụng Firebase. Thông thường cấu hình đã nằm sẵn trong `lib/firebase_options.dart`. Nếu bạn cần kết nối sang một project Firebase khác hoặc môi trường bị thiếu, thực hiện các bước sau:
 
 **1. Đăng nhập Firebase CLI:**
@@ -103,4 +93,5 @@ Mở lại Terminal mới cho nhận biến môi trường và chạy:
 ```bash
 flutterfire configure
 ```
+
 *(Lưu ý: Để cài đặt thư viện core của Firebase trong Flutter nếu chưa có, dùng lệnh: `flutter pub add firebase_core`)*
