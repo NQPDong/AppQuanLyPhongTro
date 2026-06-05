@@ -1,8 +1,26 @@
-# Hướng Dẫn Cài Đặt Và Chạy Dự Án Quản Lý Phòng Trọ
+# 🏠 Ứng dụng Quản lý Phòng trọ (Boarding House Management App)
+
+Ứng dụng di động được xây dựng bằng Flutter và Firebase, hỗ trợ các chủ trọ quản lý vận hành phòng trọ một cách hiện đại, tối ưu hóa việc lưu trữ và truy xuất dữ liệu khách thuê trên nền tảng đám mây.
+
+## 🌟 Tính năng nổi bật
+- **Xác thực người dùng**: Hệ thống đăng nhập và phân quyền bảo mật thông qua Firebase Authentication.
+- **Quản lý dữ liệu thời gian thực**: Sử dụng Cloud Firestore để đồng bộ hóa danh sách phòng, dịch vụ và thông tin khách hàng ngay lập tức.
+- **Hệ thống ổn định**: Tích hợp Firebase Core giúp ứng dụng kết nối mượt mà và tin cậy với các dịch vụ backend.
+- **Giao diện hiện đại**: Giao diện đẹp mắt, trực quan và thân thiện với người dùng.
+
+## 🛠 Tech Stack
+- **Ngôn ngữ**: Dart
+- **Framework**: Flutter
+- **Backend**: Firebase (Firestore, Auth, Core)
+- **Công cụ phát triển**: Android Studio / VS Code
+
+---
+
+## 🚀 Hướng dẫn cài đặt và khởi chạy dự án
 
 Tài liệu này hướng dẫn cách cấu hình và chạy mã nguồn dự án Flutter này trên một máy tính mới.
 
-## 1. Yêu cầu hệ thống (Prerequisites)
+### 1. Yêu cầu hệ thống (Prerequisites)
 
 Để chạy được dự án, máy tính của bạn cần cài đặt sẵn các phần mềm sau:
 - **[Flutter SDK](https://docs.flutter.dev/get-started/install)** (Đảm bảo đã thêm đường dẫn `flutter\bin` vào biến môi trường `Path`).
@@ -11,7 +29,7 @@ Tài liệu này hướng dẫn cách cấu hình và chạy mã nguồn dự á
 
 ---
 
-## 2. Các bước khởi chạy dự án
+### 2. Các bước khởi chạy dự án
 
 **Bước 1: Mở dự án**
 Mở thư mục `quan_ly_phong_tro` bằng trình soạn thảo mã (VS Code hoặc Android Studio).
@@ -38,7 +56,7 @@ flutter run
 
 ---
 
-## 3. Khắc phục các lỗi thường gặp (Troubleshooting)
+## 🛠 Khắc phục các lỗi thường gặp (Troubleshooting)
 
 Dưới đây là một số lỗi bạn có thể gặp trong quá trình cài đặt môi trường mới và cách khắc phục:
 
