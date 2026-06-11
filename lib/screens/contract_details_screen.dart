@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/contract.dart';
 import '../services/contract_service.dart';
+import '../services/room_service.dart';
+import '../services/tenant_service.dart';
+import '../models/room.dart';
+import '../models/tenant.dart';
 import 'invoices_screen.dart';
 
 class ContractDetailsScreen extends StatelessWidget {
@@ -64,27 +67,23 @@ class ContractDetailsScreen extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             _buildInfoSection('Thông tin thuê', [
-              FutureBuilder<DocumentSnapshot>(
-                future: FirebaseFirestore.instance.collection('rooms').doc(contract.roomId).get(),
+              FutureBuilder<Room?>(
+                future: RoomService().getRoomById(contract.roomId),
                 builder: (context, snapshot) {
                   String val = 'Đang tải...';
-                  if (snapshot.hasData && snapshot.data!.exists) {
-                    val = 'Phòng ${snapshot.data!['roomNumber']}';
+                  if (snapshot.hasData && snapshot.data != null) {
+                    val = 'Phòng ${snapshot.data!.roomNumber}';
                   }
                   return _buildInfoRow(Icons.meeting_room_rounded, 'Phòng', val);
                 },
               ),
-              FutureBuilder<DocumentSnapshot>(
-                future: FirebaseFirestore.instance.collection('tenants').doc(contract.tenantId).get(),
+              FutureBuilder<Tenant?>(
+                future: TenantService().getTenantById(contract.tenantId),
                 builder: (context, snapshot) {
                   String val = 'Đang tải...';
-                  if (snapshot.hasData && snapshot.data!.exists) {
-                    final data = snapshot.data!.data() as Map<String, dynamic>?;
-                    if (data != null) {
-                      final code = data['code']?.toString() ?? '';
-                      final name = data['fullName']?.toString() ?? '';
-                      val = code.isNotEmpty ? '$code - $name' : name;
-                    }
+                  if (snapshot.hasData && snapshot.data != null) {
+                    final tenant = snapshot.data!;
+                    val = tenant.code.isNotEmpty ? '${tenant.code} - ${tenant.fullName}' : tenant.fullName;
                   }
                   return _buildInfoRow(Icons.person_rounded, 'Khách thuê', val);
                 },

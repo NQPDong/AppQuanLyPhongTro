@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 class Property {
   final String id;
   final String ownerId;
@@ -22,26 +20,25 @@ class Property {
   // Alias cho các screen sử dụng tên totalRooms
   int get totalRooms => roomCount;
 
-  factory Property.fromMap(Map<String, dynamic> data, String id) {
+  factory Property.fromJson(Map<String, dynamic> json) {
     return Property(
-      id: id,
-      ownerId: data['ownerId'] ?? '',
-      name: data['name'] ?? '',
-      address: data['address'] ?? '',
-      imageUrl: data['imageUrl'] ?? '',
-      roomCount: data['roomCount'] ?? data['totalRooms'] ?? 0,
-      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      id: json['id'] ?? '',
+      ownerId: json['ownerId'] ?? '',
+      name: json['name'] ?? '',
+      address: json['address'] ?? '',
+      imageUrl: json['imageUrl'] ?? '',
+      roomCount: json['roomCount'] ?? json['totalRooms'] ?? 0,
+      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : DateTime.now(),
     );
   }
 
-  Map<String, dynamic> toMap() {
+  Map<String, dynamic> toJson() {
     return {
       'ownerId': ownerId,
       'name': name,
       'address': address,
       'imageUrl': imageUrl,
       'roomCount': roomCount,
-      'createdAt': Timestamp.fromDate(createdAt),
     };
   }
 }

@@ -31,9 +31,7 @@ class RoomDetailDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final roomImage = room.imageUrl.isNotEmpty
-        ? room.imageUrl
-        : _getDefaultRoomImage(room.status, room.id);
+    final roomImage = _getDefaultRoomImage(room.status, room.id);
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),

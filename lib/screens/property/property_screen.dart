@@ -1,6 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import '../../services/auth_service.dart';
 import '../../models/property.dart';
 import '../../providers/property_provider.dart';
 import '../../services/property_service.dart';
@@ -15,12 +16,12 @@ class PropertyListScreen extends StatefulWidget {
 }
 
 class _PropertyListScreenState extends State<PropertyListScreen> {
-  String get ownerId => FirebaseAuth.instance.currentUser?.uid ?? '';
+  String get ownerId => AuthService.currentUser?.uid ?? '';
 
   @override
   void initState() {
     super.initState();
-    // Khởi tạo Provider: lắng nghe dữ liệu realtime từ Firebase
+    // Khởi tạo Provider: lắng nghe dữ liệu realtime từ Server
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (ownerId.isNotEmpty) {
         context.read<PropertyProvider>().init(ownerId);
@@ -31,10 +32,6 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Cơ sở của tôi"),
-        elevation: 0,
-      ),
       // SỬ DỤNG CONSUMER ĐỂ LẤY DỮ LIỆU TỪ PROVIDER
       body: Consumer<PropertyProvider>(
         builder: (context, provider, child) {
@@ -89,16 +86,15 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
     );
   }
 
-  final List<String> _defaultPropertyImages = const [
-    'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1582407947304-fd86f028f716?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=800&q=80',
-  ];
-
-  String _getDefaultPropertyImage(String propertyId) {
-    final index = propertyId.hashCode.abs() % _defaultPropertyImages.length;
-    return _defaultPropertyImages[index];
+  Widget _buildPlaceholderImage() {
+    return SizedBox(
+      height: 170,
+      width: double.infinity,
+      child: Image.asset(
+        'assets/default_property.jpg',
+        fit: BoxFit.cover,
+      ),
+    );
   }
 
   Widget _buildPropertyCard(
@@ -227,27 +223,37 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
   }
 
   Widget _buildPropertyImage(Property property) {
-    final imageUrl = property.imageUrl.isNotEmpty
-        ? property.imageUrl
-        : _getDefaultPropertyImage(property.id);
-
-    return SizedBox(
-      height: 170,
-      width: double.infinity,
-      child: Image.network(
-        imageUrl,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) {
-          return Container(
+    if (property.imageUrl.isNotEmpty) {
+      final imageUrl = property.imageUrl;
+      if (imageUrl.startsWith('data:image') || imageUrl.contains('base64,')) {
+        try {
+          final base64Content = imageUrl.split(',').last;
+          final decodedBytes = base64Decode(base64Content);
+          return SizedBox(
             height: 170,
-            color: Colors.grey[100],
-            child: Center(
-              child: Icon(Icons.home_work_outlined, size: 50, color: Colors.grey[400]),
+            width: double.infinity,
+            child: Image.memory(
+              decodedBytes,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => _buildPlaceholderImage(),
             ),
           );
-        },
-      ),
-    );
+        } catch (e) {
+          return _buildPlaceholderImage();
+        }
+      } else {
+        return SizedBox(
+          height: 170,
+          width: double.infinity,
+          child: Image.network(
+            imageUrl,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) => _buildPlaceholderImage(),
+          ),
+        );
+      }
+    }
+    return _buildPlaceholderImage();
   }
 
   void _editProperty(

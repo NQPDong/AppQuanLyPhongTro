@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import '../services/auth_service.dart' show AuthService;
 import 'contracts_screen.dart';
 import 'contract_details_screen.dart';
 import '../services/contract_service.dart';
@@ -19,15 +18,15 @@ class DashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
-    final displayName = user?.displayName ?? user?.email?.split('@')[0] ?? 'Admin';
+    final user = AuthService.currentUser;
+    final displayName = user?.displayName ?? user?.email.split('@')[0] ?? 'Người dùng';
 
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: kToolbarHeight + 20),
+          const SizedBox(height: 16),
           // Chào hỏi người dùng
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -104,10 +103,7 @@ class DashboardScreen extends StatelessWidget {
                     // Giả sử ta lấy tất cả phòng để đếm, thực tế nên có hàm count riêng
                     // Tạm thời ta lấy phòng theo property (cần loop qua các property hoặc có service lấy hết)
                     // Vì chưa có service lấy hết phòng của user, ta dùng tạm logic này hoặc bổ sung service
-                    stream: FirebaseFirestore.instance.collection('rooms')
-                        .where('ownerId', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
-                        .snapshots()
-                        .map((s) => s.docs.map((d) => Room.fromMap(d.data() as Map<String, dynamic>, d.id)).toList()),
+                    stream: _roomService.getAllRooms(),
                     builder: (context, snapshot) {
                       int available = 0;
                       int maintenance = 0;

@@ -1,79 +1,184 @@
-import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'api_config.dart';
 
-class AuthService {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+class AppUser {
+  final String uid;
+  final String email;
+  final String displayName;
+  AppUser({
+    required this.uid,
+    required this.email,
+    required this.displayName,
+  });
 
-  // Xử lý lỗi Firebase
-  String _handleAuthException(FirebaseAuthException e) {
-    switch (e.code) {
-      case 'user-not-found':
-        return 'Không tìm thấy tài khoản với email này.';
-      case 'wrong-password':
-        return 'Sai mật khẩu. Vui lòng thử lại.';
-      case 'email-already-in-use':
-        return 'Email này đã được sử dụng cho một tài khoản khác.';
-      case 'invalid-email':
-        return 'Định dạng email không hợp lệ.';
-      case 'user-disabled':
-        return 'Tài khoản này đã bị vô hiệu hóa.';
-      case 'too-many-requests':
-        return 'Quá nhiều yêu cầu. Vui lòng thử lại sau.';
-      case 'operation-not-allowed':
-        return 'Đăng nhập bằng Email/Mật khẩu chưa được bật trong Firebase.';
-      default:
-        return 'Đã xảy ra lỗi: ${e.message}';
-    }
+  factory AppUser.fromJson(Map<String, dynamic> json) {
+    return AppUser(
+      uid: json['id'] ?? '',
+      email: json['email'] ?? '',
+      displayName: json['fullName'] ?? '',
+    );
   }
 
+  Map<String, dynamic> toJson() {
+    return {
+      'id': uid,
+      'email': email,
+      'fullName': displayName,
+    };
+  }
+}
+
+class AuthService {
+  static AppUser? currentUser;
+
   // 1. Đăng nhập
-  Future<User?> signInWithEmail(String email, String password) async {
+  Future<AppUser?> signInWithEmail(String email, String password) async {
     try {
-      UserCredential result = await _auth.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-      return result.user;
+      final response = await ApiConfig.request(() => http.post(
+        Uri.parse('${ApiConfig.baseUrl}/auth/login'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': email,
+          'password': password,
+        }),
+      ));
+
+      if (response.statusCode == 200) {
+        final userData = jsonDecode(response.body);
+        currentUser = AppUser.fromJson(userData);
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('currentUser', jsonEncode(currentUser!.toJson()));
+        return currentUser;
+      } else {
+        final errorMsg = jsonDecode(response.body)['message'] ?? 'Sai mật khẩu hoặc tài khoản không tồn tại.';
+        throw Exception(errorMsg);
+      }
     } catch (e) {
-      if (e is FirebaseAuthException) throw Exception(_handleAuthException(e));
-      throw Exception('Lỗi hệ thống: $e');
+      throw Exception(e.toString().replaceAll('Exception: ', ''));
     }
   }
 
   // 2. Đăng ký
-  Future<User?> registerWithEmail(String email, String password) async {
+  Future<AppUser?> registerWithEmail(String email, String password, {String fullName = ''}) async {
     try {
-      UserCredential result = await _auth.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-      return result.user;
+      final response = await ApiConfig.request(() => http.post(
+        Uri.parse('${ApiConfig.baseUrl}/auth/register'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': email,
+          'password': password,
+          'fullName': fullName.isNotEmpty ? fullName : email.split('@')[0],
+        }),
+      ));
+
+      if (response.statusCode == 200) {
+        final userData = jsonDecode(response.body);
+        currentUser = AppUser.fromJson(userData);
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('currentUser', jsonEncode(currentUser!.toJson()));
+        return currentUser;
+      } else {
+        final errorMsg = jsonDecode(response.body)['message'] ?? 'Email đã tồn tại.';
+        throw Exception(errorMsg);
+      }
     } catch (e) {
-      if (e is FirebaseAuthException) throw Exception(_handleAuthException(e));
-      throw Exception('Lỗi hệ thống: $e');
+      throw Exception(e.toString().replaceAll('Exception: ', ''));
     }
   }
 
   // 3. Đăng xuất
   Future<void> signOut() async {
+    currentUser = null;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('currentUser');
+  }
+
+  // Tự động đăng nhập
+  static Future<bool> tryAutoLogin() async {
     try {
-      await _auth.signOut();
+      final prefs = await SharedPreferences.getInstance();
+      final userStr = prefs.getString('currentUser');
+      if (userStr != null) {
+        final userData = jsonDecode(userStr);
+        currentUser = AppUser.fromJson(userData);
+        return true;
+      }
     } catch (e) {
-      throw Exception('Không thể đăng xuất: $e');
+      print('Lỗi auto login: $e');
     }
+    return false;
   }
 
   // 4. Quên mật khẩu
   Future<void> sendPasswordResetEmail(String email) async {
     try {
-      await _auth.sendPasswordResetEmail(email: email);
+      final response = await ApiConfig.request(() => http.post(
+        Uri.parse('${ApiConfig.baseUrl}/auth/reset-password'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email}),
+      ));
+
+      if (response.statusCode != 200) {
+        final errorMsg = jsonDecode(response.body)['message'] ?? 'Lỗi không xác định.';
+        throw Exception(errorMsg);
+      }
     } catch (e) {
-      if (e is FirebaseAuthException) throw Exception(_handleAuthException(e));
-      throw Exception('Lỗi hệ thống: $e');
+      throw Exception(e.toString().replaceAll('Exception: ', ''));
     }
   }
 
-  // Stream lắng nghe trạng thái đăng nhập
-  Stream<User?> get userStatus {
-    return _auth.authStateChanges();
+  // 5. Cập nhật tên hiển thị
+  Future<void> updateCurrentUserDisplayName(String newName) async {
+    if (currentUser == null) return;
+    try {
+      final response = await ApiConfig.request(() => http.post(
+        Uri.parse('${ApiConfig.baseUrl}/auth/update-name'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'userId': currentUser!.uid,
+          'fullName': newName,
+        }),
+      ));
+
+      if (response.statusCode == 200) {
+        currentUser = AppUser(
+          uid: currentUser!.uid,
+          email: currentUser!.email,
+          displayName: newName,
+        );
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('currentUser', jsonEncode(currentUser!.toJson()));
+      } else {
+        final errorMsg = jsonDecode(response.body)['message'] ?? 'Cập nhật không thành công.';
+        throw Exception(errorMsg);
+      }
+    } catch (e) {
+      throw Exception(e.toString().replaceAll('Exception: ', ''));
+    }
+  }
+
+  // 6. Đổi mật khẩu
+  Future<void> changePassword(String oldPassword, String newPassword) async {
+    if (currentUser == null) return;
+    try {
+      final response = await ApiConfig.request(() => http.post(
+        Uri.parse('${ApiConfig.baseUrl}/auth/change-password'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'userId': currentUser!.uid,
+          'oldPassword': oldPassword,
+          'newPassword': newPassword,
+        }),
+      ));
+
+      if (response.statusCode != 200) {
+        final errorMsg = jsonDecode(response.body)['message'] ?? 'Đổi mật khẩu không thành công.';
+        throw Exception(errorMsg);
+      }
+    } catch (e) {
+      throw Exception(e.toString().replaceAll('Exception: ', ''));
+    }
   }
 }

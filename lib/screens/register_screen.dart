@@ -83,75 +83,86 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
         ),
         child: SafeArea(
-          child: Column(
-            children: [
-              const SizedBox(height: 20),
-              // Nút Back
-              Align(
-                alignment: Alignment.centerLeft,
-                child: IconButton(
-                  icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ),
-              const Icon(Icons.person_add_alt_1_rounded, size: 60, color: Colors.white),
-              const SizedBox(height: 16),
-              const Text(
-                'TẠO TÀI KHOẢN',
-                style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: 2),
-              ),
-              const Spacer(),
-              // Form đăng ký
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 30),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(40),
-                    topRight: Radius.circular(40),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: IntrinsicHeight(
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 20),
+                        // Nút Back
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: IconButton(
+                            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                        ),
+                        const Icon(Icons.person_add_alt_1_rounded, size: 60, color: Colors.white),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'TẠO TÀI KHOẢN',
+                          style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: 2),
+                        ),
+                        const Spacer(),
+                        // Form đăng ký
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 30),
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.only(
+                              topLeft: Radius.circular(40),
+                              topRight: Radius.circular(40),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Bắt đầu quản lý!',
+                                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+                              ),
+                              const SizedBox(height: 8),
+                              const Text('Điền thông tin bên dưới để tạo tài khoản mới.', style: TextStyle(color: Color(0xFF64748B), fontSize: 14)),
+                              const SizedBox(height: 24),
+                              _buildTextField('Họ và tên', Icons.person_outline_rounded, _nameController),
+                              const SizedBox(height: 16),
+                              _buildTextField('Email', Icons.email_outlined, _emailController),
+                              const SizedBox(height: 16),
+                              _buildTextField('Mật khẩu', Icons.lock_outline_rounded, _passwordController, isPassword: true),
+                              const SizedBox(height: 16),
+                              _buildTextField('Xác nhận mật khẩu', Icons.lock_reset_rounded, _confirmPasswordController, isPassword: true),
+                              const SizedBox(height: 24),
+                              SizedBox(
+                                width: double.infinity,
+                                height: 56,
+                                child: ElevatedButton(
+                                  onPressed: _isLoading ? null : _handleRegister,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF6366F1),
+                                    foregroundColor: Colors.white,
+                                    elevation: 0,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                  ),
+                                  child: _isLoading
+                                      ? const SizedBox(
+                                          height: 24, width: 24,
+                                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
+                                        )
+                                      : const Text('ĐĂNG KÝ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Bắt đầu quản lý!',
-                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text('Điền thông tin bên dưới để tạo tài khoản mới.', style: TextStyle(color: Color(0xFF64748B), fontSize: 14)),
-                    const SizedBox(height: 24),
-                    _buildTextField('Họ và tên', Icons.person_outline_rounded, _nameController),
-                    const SizedBox(height: 16),
-                    _buildTextField('Email', Icons.email_outlined, _emailController),
-                    const SizedBox(height: 16),
-                    _buildTextField('Mật khẩu', Icons.lock_outline_rounded, _passwordController, isPassword: true),
-                    const SizedBox(height: 16),
-                    _buildTextField('Xác nhận mật khẩu', Icons.lock_reset_rounded, _confirmPasswordController, isPassword: true),
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 56,
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _handleRegister,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF6366F1),
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        ),
-                        child: _isLoading
-                            ? const SizedBox(
-                                height: 24, width: 24,
-                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
-                              )
-                            : const Text('ĐĂNG KÝ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+              );
+            },
           ),
         ),
       ),

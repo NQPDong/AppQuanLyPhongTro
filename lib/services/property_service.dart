@@ -1,47 +1,81 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:async';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'auth_service.dart';
 import '../models/property.dart';
+import 'api_config.dart';
 
 class PropertyService {
-  final CollectionReference _propertiesCollection = FirebaseFirestore.instance.collection('properties');
-  final String? _currentUserId = FirebaseAuth.instance.currentUser?.uid;
+  String? get _currentUserId => AuthService.currentUser?.uid;
+  
+  static final StreamController<List<Property>> _propertiesController = StreamController<List<Property>>.broadcast();
+  static List<Property> _cachedProperties = [];
 
-  // Lấy danh sách cơ sở (Realtime qua Stream)
   Stream<List<Property>> getProperties([String? ownerId]) {
     final uid = ownerId ?? _currentUserId;
     if (uid == null) return const Stream.empty();
-    
-    return _propertiesCollection
-        .where('ownerId', isEqualTo: uid)
-        .snapshots()
-        .map((snapshot) {
-      final list = snapshot.docs.map((doc) => Property.fromMap(doc.data() as Map<String, dynamic>, doc.id)).toList();
-      list.sort((a, b) => b.createdAt.compareTo(a.createdAt)); // Sắp xếp giảm dần ở phía client
-      return list;
-    });
+    _fetchProperties(uid);
+    return _propertiesController.stream;
   }
 
-  // Thêm cơ sở mới 
-  Future<void> addProperty(Property property) async {
-    await _propertiesCollection
-        .doc(property.id.isNotEmpty ? property.id : null)
-        .set(property.toMap());
+  Future<void> _fetchProperties([String? ownerId]) async {
+    final uid = ownerId ?? _currentUserId;
+    if (uid == null) return;
+    try {
+      final response = await ApiConfig.request(() => http.get(
+        Uri.parse('${ApiConfig.baseUrl}/properties?ownerId=$uid'),
+      ));
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        _cachedProperties = data.map((json) => Property.fromJson(json)).toList();
+        _propertiesController.add(_cachedProperties);
+      } else {
+        _propertiesController.addError('Lỗi tải cơ sở trọ: ${response.statusCode}');
+      }
+    } catch (e) {
+      _propertiesController.addError(e.toString().replaceAll('Exception: ', ''));
+    }
   }
 
-  // Cập nhật cơ sở
-  Future<void> updateProperty(Property property) async {
-    await _propertiesCollection.doc(property.id).update(property.toMap());
+  Future<void> addProperty(String name, String address, String imageUrl) async {
+    if (_currentUserId == null) throw Exception('Vui lòng đăng nhập!');
+    final response = await ApiConfig.request(() => http.post(
+      Uri.parse('${ApiConfig.baseUrl}/properties'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'ownerId': _currentUserId, 'name': name, 'address': address, 'imageUrl': imageUrl}),
+    ));
+    if (response.statusCode == 200) {
+      await _fetchProperties();
+    } else {
+      throw Exception(jsonDecode(response.body)['message'] ?? 'Lỗi thêm cơ sở trọ.');
+    }
   }
 
-  // Cập nhật số lượng phòng của cơ sở
+  Future<void> updateProperty(String propertyId, String name, String address, String imageUrl) async {
+    final response = await ApiConfig.request(() => http.put(
+      Uri.parse('${ApiConfig.baseUrl}/properties/$propertyId'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'name': name, 'address': address, 'imageUrl': imageUrl}),
+    ));
+    if (response.statusCode == 200) {
+      await _fetchProperties();
+    } else {
+      throw Exception(jsonDecode(response.body)['message'] ?? 'Lỗi cập nhật.');
+    }
+  }
+
   Future<void> updateRoomCount(String propertyId, int countDelta) async {
-    await _propertiesCollection.doc(propertyId).update({
-      'roomCount': FieldValue.increment(countDelta),
-    });
+    await _fetchProperties();
   }
 
-  // Xóa cơ sở
   Future<void> deleteProperty(String propertyId) async {
-    await _propertiesCollection.doc(propertyId).delete();
+    final response = await ApiConfig.request(() => http.delete(
+      Uri.parse('${ApiConfig.baseUrl}/properties/$propertyId'),
+    ));
+    if (response.statusCode == 200) {
+      await _fetchProperties();
+    } else {
+      throw Exception(jsonDecode(response.body)['message'] ?? 'Lỗi xóa cơ sở trọ.');
+    }
   }
 }

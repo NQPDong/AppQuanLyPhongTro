@@ -4,7 +4,7 @@ class RevenueData {
 
   RevenueData({required this.month, required this.revenue});
 
-  // Constructor để lấy dữ liệu mẫu hoặc từ Firebase sau này
+  // Constructor để lấy dữ liệu từ Server
   static List<RevenueData> getYearlyRevenue(int year) {
     return [
       RevenueData(month: 'T01', revenue: 50.5),

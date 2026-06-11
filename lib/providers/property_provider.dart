@@ -23,7 +23,7 @@ class PropertyProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // Hàm này để khởi tạo việc lắng nghe dữ liệu từ Firebase
+  // Hàm này để khởi tạo việc lắng nghe dữ liệu từ API
   void init(String ownerId) {
     _isLoading = true;
     _error = null;
@@ -46,13 +46,13 @@ class PropertyProvider with ChangeNotifier {
   }
 
   // Thêm cơ sở mới
-  Future<void> addProperty(Property property) async {
-    await _propertyService.addProperty(property);
+  Future<void> addProperty(String name, String address, String imageUrl) async {
+    await _propertyService.addProperty(name, address, imageUrl);
   }
 
   // Cập nhật cơ sở
-  Future<void> updateProperty(Property property) async {
-    await _propertyService.updateProperty(property);
+  Future<void> updateProperty(String propertyId, String name, String address, String imageUrl) async {
+    await _propertyService.updateProperty(propertyId, name, address, imageUrl);
   }
 
   // Xóa cơ sở

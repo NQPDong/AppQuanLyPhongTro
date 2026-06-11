@@ -1,83 +1,164 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:async';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'auth_service.dart';
 import '../models/room.dart';
 import 'property_service.dart';
+import 'api_config.dart';
 
 class RoomService {
-  final CollectionReference _roomsCollection = FirebaseFirestore.instance.collection('rooms');
-  final String? _currentUserId = FirebaseAuth.instance.currentUser?.uid;
+  String? get _currentUserId => AuthService.currentUser?.uid;
   final PropertyService _propertyService = PropertyService();
 
-  // Lấy danh sách phòng theo propertyId
+  static final Map<String, StreamController<List<Room>>> _controllers = {};
+
+  StreamController<List<Room>> _getOrCreateController(String propertyId) {
+    if (!_controllers.containsKey(propertyId)) {
+      _controllers[propertyId] = StreamController<List<Room>>.broadcast();
+    }
+    return _controllers[propertyId]!;
+  }
+
   Stream<List<Room>> getRoomsByProperty(String propertyId) {
     if (_currentUserId == null) return const Stream.empty();
-    
-    return _roomsCollection
-        .where('propertyId', isEqualTo: propertyId)
-        .snapshots()
-        .map((snapshot) {
-      final list = snapshot.docs.map((doc) => Room.fromMap(doc.data() as Map<String, dynamic>, doc.id)).toList();
-      list.sort((a, b) => a.roomNumber.compareTo(b.roomNumber)); // Sắp xếp client-side
-      return list;
-    });
+    _fetchRooms(propertyId);
+    return _getOrCreateController(propertyId).stream;
   }
 
-  // Lọc phòng theo giá, diện tích, tầng, trạng thái
-  static List<Room> filterRooms({
-    required List<Room> rooms,
-    double? minPrice,
-    double? maxPrice,
-    double? minArea,
-    double? maxArea,
-    int? floor,
-    String? status,
-  }) {
-    return rooms.where((room) {
-      if (minPrice != null && room.price < minPrice) return false;
-      if (maxPrice != null && room.price > maxPrice) return false;
-      if (minArea != null && room.area < minArea) return false;
-      if (maxArea != null && room.area > maxArea) return false;
-      if (floor != null && room.floor != floor) return false;
-      if (status != null && status != 'Tất cả' && room.status != status) {
-        return false;
+  Stream<List<Room>> getAllRooms() {
+    if (_currentUserId == null) return const Stream.empty();
+    final controller = StreamController<List<Room>>.broadcast();
+    _fetchAllRooms(controller);
+    return controller.stream;
+  }
+
+  Future<void> _fetchAllRooms(StreamController<List<Room>> controller) async {
+    try {
+      final response = await ApiConfig.request(() => http.get(
+        Uri.parse('${ApiConfig.baseUrl}/rooms?ownerId=$_currentUserId'),
+      ));
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        final rooms = data.map((json) => Room.fromJson(json)).toList();
+        controller.add(rooms);
+      } else {
+        controller.addError('Lỗi tải phòng: ${response.statusCode}');
       }
-      return true;
-    }).toList();
-  }
-
-  // Thêm phòng mới
-  Future<void> addRoom(Room room) async {
-    await _roomsCollection
-        .doc(room.id.isNotEmpty ? room.id : null)
-        .set(room.toMap());
-  }
-
-  // Cập nhật thông tin phòng 
-  Future<void> updateRoom(Room room) async {
-    await _roomsCollection.doc(room.id).update(room.toMap());
-  }
-
-  // Cập nhật trạng thái phòng (available/rented/maintenance)
-  Future<void> updateRoomStatus(String roomId, String status) async {
-    await _roomsCollection.doc(roomId).update({
-      'status': status,
-    });
-  }
-
-  // Xóa phòng
-  Future<void> deleteRoom(String roomId, [String? propertyId]) async {
-    await _roomsCollection.doc(roomId).delete();
-    // Giảm roomCount ở property nếu có propertyId
-    if (propertyId != null) {
-      await _propertyService.updateRoomCount(propertyId, -1);
+    } catch (e) {
+      controller.addError(e.toString().replaceAll('Exception: ', ''));
     }
   }
 
-  // Lấy chi tiết phòng theo roomId
+  Future<void> _fetchRooms(String propertyId) async {
+    try {
+      final response = await ApiConfig.request(() => http.get(
+        Uri.parse('${ApiConfig.baseUrl}/rooms?propertyId=$propertyId'),
+      ));
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        final rooms = data.map((json) => Room.fromJson(json)).toList();
+        _getOrCreateController(propertyId).add(rooms);
+      } else {
+        _getOrCreateController(propertyId).addError('Lỗi tải phòng: ${response.statusCode}');
+      }
+    } catch (e) {
+      _getOrCreateController(propertyId).addError(e.toString().replaceAll('Exception: ', ''));
+    }
+  }
+
+  Future<List<Room>> filterRooms(String propertyId, {String? query, String? status, double? minPrice, double? maxPrice}) async {
+    String url = '${ApiConfig.baseUrl}/rooms?propertyId=$propertyId';
+    if (status != null && status != 'all') url += '&status=$status';
+    if (query != null && query.isNotEmpty) url += '&query=${Uri.encodeComponent(query)}';
+    if (minPrice != null) url += '&minPrice=$minPrice';
+    if (maxPrice != null) url += '&maxPrice=$maxPrice';
+
+    final response = await ApiConfig.request(() => http.get(Uri.parse(url)));
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      return data.map((json) => Room.fromJson(json)).toList();
+    }
+    return [];
+  }
+
+  Future<void> addRoom({
+    required String propertyId,
+    required String roomNumber,
+    required int floor,
+    required double area,
+    required double price,
+    String description = '',
+  }) async {
+    if (_currentUserId == null) throw Exception('Vui lòng đăng nhập!');
+    final response = await ApiConfig.request(() => http.post(
+      Uri.parse('${ApiConfig.baseUrl}/rooms'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'propertyId': propertyId, 'ownerId': _currentUserId,
+        'roomNumber': roomNumber, 'floor': floor,
+        'area': area, 'price': price, 'description': description,
+      }),
+    ));
+    if (response.statusCode == 200) {
+      await _fetchRooms(propertyId);
+      await _propertyService.updateRoomCount(propertyId, 1);
+    } else {
+      throw Exception(jsonDecode(response.body)['message'] ?? 'Lỗi thêm phòng.');
+    }
+  }
+
+  Future<void> updateRoom(String roomId, {
+    required String roomNumber, required int floor,
+    required double area, required double price, required String description,
+  }) async {
+    final response = await ApiConfig.request(() => http.put(
+      Uri.parse('${ApiConfig.baseUrl}/rooms/$roomId'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'roomNumber': roomNumber, 'floor': floor,
+        'area': area, 'price': price, 'description': description,
+      }),
+    ));
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      await _fetchRooms(data['propertyId']);
+    } else {
+      throw Exception(jsonDecode(response.body)['message'] ?? 'Lỗi cập nhật phòng.');
+    }
+  }
+
+  Future<void> updateRoomStatus(String roomId, String status) async {
+    final response = await ApiConfig.request(() => http.put(
+      Uri.parse('${ApiConfig.baseUrl}/rooms/$roomId/status'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'status': status}),
+    ));
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      await _fetchRooms(data['propertyId']);
+    }
+  }
+
+  Future<void> deleteRoom(String roomId, String propertyId) async {
+    final response = await ApiConfig.request(() => http.delete(
+      Uri.parse('${ApiConfig.baseUrl}/rooms/$roomId'),
+    ));
+    if (response.statusCode == 200) {
+      await _fetchRooms(propertyId);
+      await _propertyService.updateRoomCount(propertyId, -1);
+    } else {
+      throw Exception(jsonDecode(response.body)['message'] ?? 'Lỗi xóa phòng.');
+    }
+  }
+
   Future<Room?> getRoomById(String roomId) async {
-    final doc = await _roomsCollection.doc(roomId).get();
-    if (doc.exists && doc.data() != null) {
-      return Room.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+    try {
+      final response = await ApiConfig.request(() => http.get(Uri.parse('${ApiConfig.baseUrl}/rooms/$roomId')));
+      if (response.statusCode == 200) {
+        return Room.fromJson(jsonDecode(response.body));
+      }
+    } catch (e) {
+      print('Lỗi lấy phòng theo ID: $e');
     }
     return null;
   }

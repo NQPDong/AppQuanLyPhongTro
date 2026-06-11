@@ -44,3 +44,11 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 .agents/rules/antigravity-rtk-rules.md
+.agents/
+skills
+
+# .NET Backend
+backend/bin/
+backend/obj/
+backend/.vs/
+backend/appsettings.Development.json

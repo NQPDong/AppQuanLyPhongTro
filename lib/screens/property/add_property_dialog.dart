@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../models/property.dart';
 import '../../services/property_service.dart';
 
@@ -43,27 +45,109 @@ class _AddPropertyDialogState extends State<AddPropertyDialog> {
     super.dispose();
   }
 
+  Future<void> _pickImage() async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 70,
+      );
+      if (image != null) {
+        final bytes = await image.readAsBytes();
+        final base64String = base64Encode(bytes);
+        setState(() {
+          _imageUrlController.text = 'data:image/png;base64,$base64String';
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi chọn ảnh: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  Widget _buildPreviewImage() {
+    final imageUrl = _imageUrlController.text;
+    final double size = 70;
+    
+    if (imageUrl.isEmpty) {
+      return Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          color: const Color(0xFFE2E8F0),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(Icons.apartment_rounded, color: const Color(0xFF94A3B8), size: size * 0.4),
+      );
+    }
+
+    if (imageUrl.startsWith('data:image') || imageUrl.contains('base64,')) {
+      try {
+        final base64Content = imageUrl.split(',').last;
+        final decodedBytes = base64Decode(base64Content);
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Image.memory(
+            decodedBytes,
+            width: size,
+            height: size,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) => Container(
+              width: size,
+              height: size,
+              color: const Color(0xFFF1F5F9),
+              child: Icon(Icons.broken_image_rounded, color: Colors.red.shade300, size: size * 0.4),
+            ),
+          ),
+        );
+      } catch (e) {
+        return Container(
+          width: size,
+          height: size,
+          color: const Color(0xFFF1F5F9),
+          child: Icon(Icons.broken_image_rounded, color: Colors.red.shade300, size: size * 0.4),
+        );
+      }
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Image.network(
+        imageUrl,
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => Container(
+          width: size,
+          height: size,
+          color: const Color(0xFFF1F5F9),
+          child: Icon(Icons.broken_image_rounded, color: Colors.red.shade300, size: size * 0.4),
+        ),
+      ),
+    );
+  }
+
   void _submit() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
 
       try {
-        final property = Property(
-          id: isEditing
-              ? widget.property!.id
-              : DateTime.now().millisecondsSinceEpoch.toString(),
-          name: _nameController.text.trim(),
-          address: _addressController.text.trim(),
-          imageUrl: _imageUrlController.text.trim(),
-          roomCount: widget.property?.roomCount ?? 0,
-          ownerId: widget.ownerId,
-          createdAt: widget.property?.createdAt ?? DateTime.now(),
-        );
-
         if (isEditing) {
-          await PropertyService().updateProperty(property);
+          await PropertyService().updateProperty(
+            widget.property!.id,
+            _nameController.text.trim(),
+            _addressController.text.trim(),
+            _imageUrlController.text.trim(),
+          );
         } else {
-          await PropertyService().addProperty(property);
+          await PropertyService().addProperty(
+            _nameController.text.trim(),
+            _addressController.text.trim(),
+            _imageUrlController.text.trim(),
+          );
         }
 
         if (mounted) {
@@ -143,15 +227,38 @@ class _AddPropertyDialogState extends State<AddPropertyDialog> {
               ),
               const SizedBox(height: 16),
 
+              // Nút tải ảnh
+              Row(
+                children: [
+                  _buildPreviewImage(),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: _pickImage,
+                      icon: const Icon(Icons.photo_library_rounded, size: 18),
+                      label: const Text('Chọn ảnh từ máy', style: TextStyle(fontWeight: FontWeight.bold)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF6366F1),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
               // URL ảnh
               TextFormField(
                 controller: _imageUrlController,
                 keyboardType: TextInputType.url,
                 textInputAction: TextInputAction.done,
+                onChanged: (val) => setState(() {}),
                 decoration: InputDecoration(
-                  labelText: 'URL ảnh (Tùy chọn)',
+                  labelText: 'Hoặc dán URL ảnh vào đây',
                   hintText: 'https://example.com/image.jpg',
-                  prefixIcon: const Icon(Icons.image),
+                  prefixIcon: const Icon(Icons.link),
                   border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12)),
                 ),

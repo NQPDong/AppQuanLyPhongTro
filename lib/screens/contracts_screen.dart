@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import '../services/room_service.dart';
+import '../models/room.dart';
 import '../models/contract.dart';
 import '../services/contract_service.dart';
 import 'add_contract_screen.dart';
 import 'contract_details_screen.dart';
-import 'invoices_screen.dart';
 
 class ContractsScreen extends StatefulWidget {
   const ContractsScreen({super.key});
@@ -74,12 +74,12 @@ class _ContractsScreenState extends State<ContractsScreen> {
                       color: contract.status == 'active' ? const Color(0xFF6366F1) : const Color(0xFF94A3B8),
                     ),
                   ),
-                  title: FutureBuilder<DocumentSnapshot>(
-                    future: FirebaseFirestore.instance.collection('rooms').doc(contract.roomId).get(),
+                  title: FutureBuilder<Room?>(
+                    future: RoomService().getRoomById(contract.roomId),
                     builder: (context, roomSnap) {
                       String roomName = 'Đang tải...';
-                      if (roomSnap.hasData && roomSnap.data!.exists) {
-                        roomName = 'Phòng ${roomSnap.data!['roomNumber']}';
+                      if (roomSnap.hasData && roomSnap.data != null) {
+                        roomName = 'Phòng ${roomSnap.data!.roomNumber}';
                       }
                       String contractTitle = contract.code.isNotEmpty ? 'Hợp đồng ${contract.code}' : 'Hợp đồng';
                       return Text(

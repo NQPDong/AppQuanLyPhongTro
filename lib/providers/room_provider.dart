@@ -7,7 +7,7 @@ class RoomProvider with ChangeNotifier {
   final RoomService _roomService = RoomService();
   StreamSubscription<List<Room>>? _roomSubscription;
 
-  List<Room> _allRooms = []; // Chứa tất cả phòng tải về từ Firebase
+  List<Room> _allRooms = []; // Chứa tất cả phòng tải về từ Server
   List<Room> _filteredRooms = []; // Danh sách phòng sau khi đã lọc/tìm kiếm
 
   bool _isLoading = true;
@@ -32,7 +32,7 @@ class RoomProvider with ChangeNotifier {
   double? get minArea => _minArea;
   double? get maxArea => _maxArea;
 
-  // Lắng nghe dữ liệu từ Firebase
+  // Lắng nghe dữ liệu từ Server
   void loadRooms(String propertyId) {
     _isLoading = true;
     _error = null;
@@ -104,13 +104,13 @@ class RoomProvider with ChangeNotifier {
     }).toList();
 
     // Lọc nâng cao theo giá, diện tích
-    _filteredRooms = RoomService.filterRooms(
-      rooms: _filteredRooms,
-      minPrice: _minPrice,
-      maxPrice: _maxPrice,
-      minArea: _minArea,
-      maxArea: _maxArea,
-    );
+    _filteredRooms = _filteredRooms.where((room) {
+      if (_minPrice != null && room.price < _minPrice!) return false;
+      if (_maxPrice != null && room.price > _maxPrice!) return false;
+      if (_minArea != null && room.area < _minArea!) return false;
+      if (_maxArea != null && room.area > _maxArea!) return false;
+      return true;
+    }).toList();
 
     // Sắp xếp
     switch (_sortBy) {

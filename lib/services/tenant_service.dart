@@ -1,39 +1,40 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:async';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'auth_service.dart';
 import '../models/tenant.dart';
+import 'api_config.dart';
 
 class TenantService {
-  final CollectionReference _tenantsCollection = FirebaseFirestore.instance.collection('tenants');
-  final String? _currentUserId = FirebaseAuth.instance.currentUser?.uid;
+  String? get _currentUserId => AuthService.currentUser?.uid;
 
-  Future<String> _generateCode() async {
-    if (_currentUserId == null) return 'KH001';
-    final snapshot = await _tenantsCollection.where('ownerId', isEqualTo: _currentUserId).get();
-    int maxNumber = 0;
-    for (var doc in snapshot.docs) {
-      final data = doc.data() as Map<String, dynamic>;
-      final code = data['code'] as String?;
-      if (code != null && code.startsWith('KH')) {
-        final numberPart = code.substring(2);
-        final number = int.tryParse(numberPart) ?? 0;
-        if (number > maxNumber) maxNumber = number;
-      }
-    }
-    return 'KH${(maxNumber + 1).toString().padLeft(3, '0')}';
-  }
+  static final StreamController<List<Tenant>> _tenantsController = StreamController<List<Tenant>>.broadcast();
+  static List<Tenant> _cachedTenants = [];
 
   // Lấy danh sách khách thuê (Realtime)
   Stream<List<Tenant>> getTenants() {
     if (_currentUserId == null) return const Stream.empty();
-    
-    return _tenantsCollection
-        .where('ownerId', isEqualTo: _currentUserId)
-        .snapshots()
-        .map((snapshot) {
-      final list = snapshot.docs.map((doc) => Tenant.fromMap(doc.data() as Map<String, dynamic>, doc.id)).toList();
-      list.sort((a, b) => a.fullName.compareTo(b.fullName)); // Sắp xếp theo tên A-Z
-      return list;
-    });
+    _fetchTenants();
+    return _tenantsController.stream;
+  }
+
+  Future<void> _fetchTenants() async {
+    if (_currentUserId == null) return;
+    try {
+      final response = await ApiConfig.request(() => http.get(
+        Uri.parse('${ApiConfig.baseUrl}/tenants?ownerId=$_currentUserId'),
+      ));
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        _cachedTenants = data.map((json) => Tenant.fromJson(json)).toList();
+        _tenantsController.add(_cachedTenants);
+      } else {
+        _tenantsController.addError('Không thể tải danh sách khách thuê (Mã lỗi: ${response.statusCode})');
+      }
+    } catch (e) {
+      print('Lỗi tải khách thuê: $e');
+      _tenantsController.addError(e.toString().replaceAll('Exception: ', ''));
+    }
   }
 
   // Thêm khách thuê mới
@@ -46,29 +47,29 @@ class TenantService {
   }) async {
     if (_currentUserId == null) throw Exception('Vui lòng đăng nhập!');
 
-    // Check trùng CMND/CCCD
-    final checkSnapshot = await _tenantsCollection
-      .where('ownerId', isEqualTo: _currentUserId)
-      .where('idCard', isEqualTo: idCard)
-      .get();
-      
-    if (checkSnapshot.docs.isNotEmpty) {
-      throw Exception('Khách hàng với số CMND/CCCD này đã tồn tại!');
+    try {
+      final response = await ApiConfig.request(() => http.post(
+        Uri.parse('${ApiConfig.baseUrl}/tenants'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'ownerId': _currentUserId,
+          'fullName': fullName,
+          'phone': phone,
+          'idCard': idCard,
+          'address': address,
+          'notes': notes,
+        }),
+      ));
+
+      if (response.statusCode == 200) {
+        await _fetchTenants();
+      } else {
+        final errorMsg = jsonDecode(response.body)['message'] ?? 'Lỗi thêm khách thuê mới.';
+        throw Exception(errorMsg);
+      }
+    } catch (e) {
+      throw Exception(e.toString().replaceAll('Exception: ', ''));
     }
-
-    final newTenant = Tenant(
-      id: '',
-      ownerId: _currentUserId,
-      fullName: fullName,
-      phone: phone,
-      idCard: idCard,
-      address: address,
-      notes: notes,
-      code: await _generateCode(),
-      createdAt: DateTime.now(),
-    );
-
-    await _tenantsCollection.add(newTenant.toMap());
   }
 
   // Cập nhật thông tin khách thuê
@@ -79,17 +80,59 @@ class TenantService {
     required String address,
     required String notes,
   }) async {
-    await _tenantsCollection.doc(tenantId).update({
-      'fullName': fullName,
-      'phone': phone,
-      'idCard': idCard,
-      'address': address,
-      'notes': notes,
-    });
+    try {
+      final response = await ApiConfig.request(() => http.put(
+        Uri.parse('${ApiConfig.baseUrl}/tenants/$tenantId'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'fullName': fullName,
+          'phone': phone,
+          'idCard': idCard,
+          'address': address,
+          'notes': notes,
+        }),
+      ));
+
+      if (response.statusCode == 200) {
+        await _fetchTenants();
+      } else {
+        final errorMsg = jsonDecode(response.body)['message'] ?? 'Lỗi cập nhật khách thuê.';
+        throw Exception(errorMsg);
+      }
+    } catch (e) {
+      throw Exception(e.toString().replaceAll('Exception: ', ''));
+    }
   }
 
   // Xóa khách thuê
   Future<void> deleteTenant(String tenantId) async {
-    await _tenantsCollection.doc(tenantId).delete();
+    try {
+      final response = await ApiConfig.request(() => http.delete(
+        Uri.parse('${ApiConfig.baseUrl}/tenants/$tenantId'),
+      ));
+
+      if (response.statusCode == 200) {
+        await _fetchTenants();
+      } else {
+        final errorMsg = jsonDecode(response.body)['message'] ?? 'Lỗi xóa khách thuê.';
+        throw Exception(errorMsg);
+      }
+    } catch (e) {
+      throw Exception(e.toString().replaceAll('Exception: ', ''));
+    }
+  }
+
+  // Lấy chi tiết khách thuê theo ID
+  Future<Tenant?> getTenantById(String tenantId) async {
+    try {
+      final response = await ApiConfig.request(() => http.get(Uri.parse('${ApiConfig.baseUrl}/tenants/$tenantId')));
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        return Tenant.fromJson(json);
+      }
+    } catch (e) {
+      print('Lỗi lấy khách thuê theo ID: $e');
+    }
+    return null;
   }
 }

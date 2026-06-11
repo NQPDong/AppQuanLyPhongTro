@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
 import '../services/user_service.dart';
-import '../models/user_profile.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -12,7 +10,7 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  final user = FirebaseAuth.instance.currentUser;
+  final user = AuthService.currentUser;
   final _userService = UserService();
   UserProfile? _userProfile;
   bool _isProfileLoading = true;
@@ -25,7 +23,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _loadProfile() async {
     if (user != null) {
-      final profile = await _userService.getUserProfile(user!.uid, user!.email ?? '');
+      final profile = await _userService.getUserProfile(user!.uid, user!.email);
       if (mounted) {
         setState(() {
           _userProfile = profile;
@@ -125,7 +123,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 final scaffoldMessenger = ScaffoldMessenger.of(context);
 
                 await _userService.updateUserProfile(updatedProfile);
-                await user?.updateDisplayName(nameController.text.trim());
 
                 if (mounted) {
                   setState(() {
@@ -145,22 +142,120 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Future<void> _resetPassword() async {
-    if (user?.email != null) {
-      await FirebaseAuth.instance.sendPasswordResetEmail(email: user!.email!);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Link đổi mật khẩu đã được gửi tới ${user!.email}')),
-        );
-      }
-    }
+  Future<void> _changePasswordDialog() async {
+    final oldPasswordController = TextEditingController();
+    final newPasswordController = TextEditingController();
+    final confirmPasswordController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    bool isLoading = false;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setStateDialog) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text(
+            'Đổi mật khẩu',
+            style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+          ),
+          content: SingleChildScrollView(
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: oldPasswordController,
+                    obscureText: true,
+                    textInputAction: TextInputAction.next,
+                    decoration: InputDecoration(
+                      labelText: 'Mật khẩu cũ',
+                      prefixIcon: const Icon(Icons.lock_outline_rounded),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    validator: (value) =>
+                        value == null || value.isEmpty ? 'Vui lòng nhập mật khẩu cũ' : null,
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: newPasswordController,
+                    obscureText: true,
+                    textInputAction: TextInputAction.next,
+                    decoration: InputDecoration(
+                      labelText: 'Mật khẩu mới',
+                      prefixIcon: const Icon(Icons.lock_reset_rounded),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    validator: (value) =>
+                        value == null || value.length < 6 ? 'Mật khẩu mới ít nhất 6 ký tự' : null,
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: confirmPasswordController,
+                    obscureText: true,
+                    textInputAction: TextInputAction.done,
+                    decoration: InputDecoration(
+                      labelText: 'Nhập lại mật khẩu mới',
+                      prefixIcon: const Icon(Icons.check_circle_outline_rounded),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) return 'Vui lòng xác nhận mật khẩu mới';
+                      if (value != newPasswordController.text) return 'Mật khẩu không khớp';
+                      return null;
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: isLoading ? null : () => Navigator.pop(context),
+              child: const Text('Hủy', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF6366F1),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              onPressed: isLoading ? null : () async {
+                if (formKey.currentState!.validate()) {
+                  setStateDialog(() => isLoading = true);
+                  try {
+                    await AuthService().changePassword(oldPasswordController.text, newPasswordController.text);
+                    if (context.mounted) {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Đổi mật khẩu thành công!'), backgroundColor: Colors.green),
+                      );
+                    }
+                  } catch (e) {
+                    setStateDialog(() => isLoading = false);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
+                      );
+                    }
+                  }
+                }
+              },
+              child: isLoading
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  : const Text('Lưu'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final displayName = _userProfile != null && _userProfile!.fullName.isNotEmpty
         ? _userProfile!.fullName
-        : (user?.displayName ?? user?.email?.split('@')[0] ?? 'Admin');
+        : (user?.displayName ?? user?.email.split('@')[0] ?? 'Người dùng');
     final email = user?.email ?? 'Chưa đăng nhập';
 
     return _isProfileLoading
@@ -169,7 +264,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             physics: const BouncingScrollPhysics(),
             child: Column(
               children: [
-                const SizedBox(height: kToolbarHeight + 30),
+                const SizedBox(height: 16),
                 // Phần Profile Header
                 Center(
                   child: Column(
@@ -264,7 +359,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         onTap: _editProfileDialog),
                     _buildSettingsTile(
                         Icons.lock_outline_rounded, 'Mật khẩu & Bảo mật', 'Thay đổi mật khẩu đăng nhập',
-                        onTap: _resetPassword),
+                        onTap: _changePasswordDialog),
                   ],
                 ),
 

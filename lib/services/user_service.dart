@@ -1,25 +1,40 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/user_profile.dart';
+import 'auth_service.dart';
 
 class UserService {
-  final CollectionReference _usersCollection =
-      FirebaseFirestore.instance.collection('users');
-
-  // Lấy thông tin user profile từ Firestore
+  // Lấy thông tin user profile từ AuthService (không cần gọi API riêng)
   Future<UserProfile> getUserProfile(String uid, String defaultEmail) async {
-    try {
-      final doc = await _usersCollection.doc(uid).get();
-      if (doc.exists && doc.data() != null) {
-        return UserProfile.fromMap(doc.data() as Map<String, dynamic>, doc.id);
-      }
-      return UserProfile(id: uid, fullName: '', phone: '', zalo: '', email: defaultEmail);
-    } catch (e) {
-      return UserProfile(id: uid, fullName: '', phone: '', zalo: '', email: defaultEmail);
+    final user = AuthService.currentUser;
+    if (user != null) {
+      return UserProfile(
+        id: user.uid,
+        fullName: user.displayName,
+        phone: '',
+        zalo: '',
+        email: user.email,
+      );
     }
+    return UserProfile(id: uid, fullName: '', phone: '', zalo: '', email: defaultEmail);
   }
 
-  // Cập nhật thông tin profile lên Firestore
+  // Cập nhật tên hiển thị
   Future<void> updateUserProfile(UserProfile profile) async {
-    await _usersCollection.doc(profile.id).set(profile.toMap(), SetOptions(merge: true));
+    final authService = AuthService();
+    await authService.updateCurrentUserDisplayName(profile.fullName);
   }
+}
+
+class UserProfile {
+  final String id;
+  final String fullName;
+  final String phone;
+  final String zalo;
+  final String email;
+
+  UserProfile({
+    required this.id,
+    this.fullName = '',
+    this.phone = '',
+    this.zalo = '',
+    this.email = '',
+  });
 }

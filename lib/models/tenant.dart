@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 class Tenant {
   final String id;
   final String ownerId;
@@ -23,21 +21,21 @@ class Tenant {
     required this.createdAt,
   });
 
-  factory Tenant.fromMap(Map<String, dynamic> data, String id) {
+  factory Tenant.fromJson(Map<String, dynamic> json) {
     return Tenant(
-      id: id,
-      ownerId: data['ownerId'] ?? '',
-      fullName: data['fullName'] ?? '',
-      phone: data['phone'] ?? '',
-      idCard: data['idCard'] ?? '',
-      address: data['address'] ?? '',
-      notes: data['notes'] ?? '',
-      code: data['code'] ?? '',
-      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      id: json['id'] ?? '',
+      ownerId: json['ownerId'] ?? '',
+      fullName: json['fullName'] ?? '',
+      phone: json['phone'] ?? '',
+      idCard: json['idCard'] ?? '',
+      address: json['address'] ?? '',
+      notes: json['notes'] ?? '',
+      code: json['code'] ?? '',
+      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : DateTime.now(),
     );
   }
 
-  Map<String, dynamic> toMap() {
+  Map<String, dynamic> toJson() {
     return {
       'ownerId': ownerId,
       'fullName': fullName,
@@ -46,7 +44,6 @@ class Tenant {
       'address': address,
       'notes': notes,
       'code': code,
-      'createdAt': Timestamp.fromDate(createdAt),
     };
   }
 }

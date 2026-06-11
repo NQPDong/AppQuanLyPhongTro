@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 class Room {
   final String id;
   final String propertyId;
@@ -10,7 +8,6 @@ class Room {
   final double price;
   final String description;
   final String status; // available, rented, maintenance
-  final String imageUrl;
   final DateTime createdAt;
 
   Room({
@@ -23,27 +20,25 @@ class Room {
     required this.price,
     this.description = '',
     this.status = 'available',
-    this.imageUrl = '',
     required this.createdAt,
   });
 
-  factory Room.fromMap(Map<String, dynamic> data, String id) {
+  factory Room.fromJson(Map<String, dynamic> json) {
     return Room(
-      id: id,
-      propertyId: data['propertyId'] ?? '',
-      ownerId: data['ownerId'] ?? '',
-      roomNumber: data['roomNumber'] ?? '',
-      floor: data['floor'] ?? 1,
-      area: (data['area'] ?? 0).toDouble(),
-      price: (data['price'] ?? 0).toDouble(),
-      description: data['description'] ?? '',
-      status: data['status'] ?? 'available',
-      imageUrl: data['imageUrl'] ?? '',
-      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      id: json['id'] ?? '',
+      propertyId: json['propertyId'] ?? '',
+      ownerId: json['ownerId'] ?? '',
+      roomNumber: json['roomNumber'] ?? '',
+      floor: json['floor'] ?? 1,
+      area: (json['area'] ?? 0).toDouble(),
+      price: (json['price'] ?? 0).toDouble(),
+      description: json['description'] ?? '',
+      status: json['status'] ?? 'available',
+      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : DateTime.now(),
     );
   }
 
-  Map<String, dynamic> toMap() {
+  Map<String, dynamic> toJson() {
     return {
       'propertyId': propertyId,
       'ownerId': ownerId,
@@ -53,9 +48,6 @@ class Room {
       'price': price,
       'description': description,
       'status': status,
-      'imageUrl': imageUrl,
-      'createdAt': Timestamp.fromDate(createdAt),
     };
   }
 }
-

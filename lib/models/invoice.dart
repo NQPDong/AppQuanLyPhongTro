@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 class Invoice {
   final String id;
   final String ownerId;
@@ -41,30 +39,30 @@ class Invoice {
     required this.createdAt,
   });
 
-  factory Invoice.fromMap(Map<String, dynamic> data, String id) {
+  factory Invoice.fromJson(Map<String, dynamic> json) {
     return Invoice(
-      id: id,
-      ownerId: data['ownerId'] ?? '',
-      contractId: data['contractId'] ?? '',
-      roomId: data['roomId'] ?? '',
-      tenantId: data['tenantId'] ?? '',
-      month: data['month'] ?? 1,
-      year: data['year'] ?? 2024,
-      oldElec: (data['oldElec'] ?? 0).toDouble(),
-      newElec: (data['newElec'] ?? 0).toDouble(),
-      elecPrice: (data['elecPrice'] ?? 0).toDouble(),
-      oldWater: (data['oldWater'] ?? 0).toDouble(),
-      newWater: (data['newWater'] ?? 0).toDouble(),
-      waterPrice: (data['waterPrice'] ?? 0).toDouble(),
-      serviceFee: (data['serviceFee'] ?? 0).toDouble(),
-      totalAmount: (data['totalAmount'] ?? 0).toDouble(),
-      isPaid: data['isPaid'] ?? false,
-      paidDate: (data['paidDate'] as Timestamp?)?.toDate(),
-      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      id: json['id'] ?? '',
+      ownerId: json['ownerId'] ?? '',
+      contractId: json['contractId'] ?? '',
+      roomId: json['roomId'] ?? '',
+      tenantId: json['tenantId'] ?? '',
+      month: json['month'] ?? 1,
+      year: json['year'] ?? 2024,
+      oldElec: (json['oldElec'] ?? 0).toDouble(),
+      newElec: (json['newElec'] ?? 0).toDouble(),
+      elecPrice: (json['elecPrice'] ?? 0).toDouble(),
+      oldWater: (json['oldWater'] ?? 0).toDouble(),
+      newWater: (json['newWater'] ?? 0).toDouble(),
+      waterPrice: (json['waterPrice'] ?? 0).toDouble(),
+      serviceFee: (json['serviceFee'] ?? 0).toDouble(),
+      totalAmount: (json['totalAmount'] ?? 0).toDouble(),
+      isPaid: json['isPaid'] ?? false,
+      paidDate: json['paidDate'] != null ? DateTime.parse(json['paidDate']) : null,
+      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : DateTime.now(),
     );
   }
 
-  Map<String, dynamic> toMap() {
+  Map<String, dynamic> toJson() {
     return {
       'ownerId': ownerId,
       'contractId': contractId,
@@ -80,9 +78,6 @@ class Invoice {
       'waterPrice': waterPrice,
       'serviceFee': serviceFee,
       'totalAmount': totalAmount,
-      'isPaid': isPaid,
-      'paidDate': paidDate != null ? Timestamp.fromDate(paidDate!) : null,
-      'createdAt': Timestamp.fromDate(createdAt),
     };
   }
 }

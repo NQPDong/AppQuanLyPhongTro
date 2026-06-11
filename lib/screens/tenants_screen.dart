@@ -109,7 +109,7 @@ class _TenantsScreenState extends State<TenantsScreen> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Padding(
-        padding: const EdgeInsets.only(top: kToolbarHeight + 20),
+        padding: const EdgeInsets.only(top: 0),
         child: Column(
           children: [
             // Search Bar

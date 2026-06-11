@@ -1,18 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:fl_chart/fl_chart.dart';
-// If PDF export takes too long to write, I'll mock it for now according to user's "nếu có thời gian".
 import 'package:printing/printing.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 import '../services/invoice_service.dart';
 import '../services/room_service.dart';
-import '../services/contract_service.dart';
 import '../models/invoice.dart';
 import '../models/room.dart';
-import '../models/contract.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 class StatisticsScreen extends StatefulWidget {
   const StatisticsScreen({super.key});
@@ -32,10 +28,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       stream: _invoiceService.getAllInvoices(),
       builder: (context, invoiceSnapshot) {
         return StreamBuilder<List<Room>>(
-          stream: FirebaseFirestore.instance.collection('rooms')
-              .where('ownerId', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
-              .snapshots()
-              .map((s) => s.docs.map((d) => Room.fromMap(d.data() as Map<String, dynamic>, d.id)).toList()),
+          stream: _roomService.getAllRooms(),
           builder: (context, roomSnapshot) {
             if (!invoiceSnapshot.hasData || !roomSnapshot.hasData) {
               return const Center(child: CircularProgressIndicator());
@@ -60,13 +53,14 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             int totalRooms = rooms.isEmpty ? 1 : rooms.length;
             double rentedPercent = (rentedCount / totalRooms) * 100;
             double availablePercent = (availableCount / totalRooms) * 100;
+            double totalRevenue = monthlyRevenue.fold(0.0, (sum, val) => sum + val);
 
             return SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: kToolbarHeight + 20),
+                  const SizedBox(height: 16),
                   // Filter Row & PDF
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -124,6 +118,37 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                     ),
                   ),
                   const SizedBox(height: 24),
+
+                  // Thống kê nhanh (KPI Card)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFECFDF5), // Xanh lá nhạt
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: const Color(0xFFD1FAE5)),
+                        boxShadow: [
+                          BoxShadow(color: Colors.black.withOpacity(0.01), blurRadius: 10, offset: const Offset(0, 5)),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(Icons.monetization_on_rounded, color: Color(0xFF10B981), size: 24),
+                          const SizedBox(height: 8),
+                          Text('Doanh thu năm $selectedYear', style: const TextStyle(color: Color(0xFF047857), fontSize: 13, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${_formatCurrency(totalRevenue)} đ',
+                            style: const TextStyle(color: Color(0xFF065F46), fontSize: 22, fontWeight: FontWeight.w900),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 28),
 
                   // Card Biểu đồ cột
                   const Padding(
@@ -367,10 +392,24 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       ),
     );
   }
+
+  String _formatCurrency(double value) {
+    RegExp reg = RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))');
+    return value.toStringAsFixed(0).replaceAllMapped(reg, (Match match) => '${match[1]}.');
+  }
   
   Future<void> _exportPdf(List<double> monthlyRevenue, int rentedCount, int availableCount) async {
-    final font = await PdfGoogleFonts.robotoRegular();
-    final fontBold = await PdfGoogleFonts.robotoBold();
+    pw.Font font;
+    pw.Font fontBold;
+    try {
+      font = await PdfGoogleFonts.robotoRegular().timeout(const Duration(seconds: 2));
+      fontBold = await PdfGoogleFonts.robotoBold().timeout(const Duration(seconds: 2));
+    } catch (_) {
+      final fontData = await rootBundle.load('assets/fonts/Arial.ttf');
+      final fontBoldData = await rootBundle.load('assets/fonts/Arial-Bold.ttf');
+      font = pw.Font.ttf(fontData);
+      fontBold = pw.Font.ttf(fontBoldData);
+    }
 
     final pdf = pw.Document(
       theme: pw.ThemeData.withFont(

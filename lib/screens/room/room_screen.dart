@@ -4,7 +4,6 @@ import '../../models/property.dart';
 import '../../models/room.dart';
 import '../../providers/room_provider.dart';
 import '../../services/room_service.dart';
-import '../../services/property_service.dart';
 import '../../widgets/search_bar_widget.dart';
 import '../../widgets/filter_chips_widget.dart';
 import 'add_room_dialog.dart';
@@ -23,7 +22,7 @@ class _RoomGridScreenState extends State<RoomGridScreen> {
   @override
   void initState() {
     super.initState();
-    // Khởi tạo Provider: lắng nghe dữ liệu realtime từ Firebase
+    // Khởi tạo Provider: lắng nghe dữ liệu realtime từ Server
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<RoomProvider>().loadRooms(widget.property.id);
     });
@@ -172,33 +171,36 @@ class _RoomGridScreenState extends State<RoomGridScreen> {
     );
   }
 
-  String _getDefaultRoomImage(String status, String roomId) {
-    final Map<String, List<String>> statusImages = {
-      'available': [
-        'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&w=500&q=80',
-        'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?auto=format&fit=crop&w=500&q=80',
-        'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=500&q=80',
-      ],
-      'rented': [
-        'https://images.unsplash.com/photo-1505691938895-1758d7feb511?auto=format&fit=crop&w=500&q=80',
-        'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=500&q=80',
-      ],
-      'maintenance': [
-        'https://images.unsplash.com/photo-1581094288338-2314dddb7ecc?auto=format&fit=crop&w=500&q=80',
-      ],
-    };
+  Widget _buildRoomIllustration(String status) {
+    IconData icon;
+    Color bgColor;
+    Color iconColor;
 
-    final images = statusImages[status] ?? statusImages['available']!;
-    final index = roomId.hashCode.abs() % images.length;
-    return images[index];
+    if (status == 'available') {
+      icon = Icons.meeting_room_rounded;
+      bgColor = const Color(0xFFDCFCE7);
+      iconColor = const Color(0xFF22C55E);
+    } else if (status == 'rented') {
+      icon = Icons.sensor_door_rounded;
+      bgColor = const Color(0xFFFEE2E2);
+      iconColor = const Color(0xFFEF4444);
+    } else {
+      icon = Icons.build_rounded;
+      bgColor = const Color(0xFFFEF3C7);
+      iconColor = const Color(0xFFF59E0B);
+    }
+
+    return Container(
+      color: bgColor,
+      child: Center(
+        child: Icon(icon, size: 50, color: iconColor.withOpacity(0.6)),
+      ),
+    );
   }
 
   // ROOM CARD 
   Widget _buildRoomCard(Room room) {
     final statusInfo = _getStatusInfo(room.status);
-    final roomImage = room.imageUrl.isNotEmpty
-        ? room.imageUrl
-        : _getDefaultRoomImage(room.status, room.id);
 
     return Card(
       elevation: 0,
@@ -209,7 +211,6 @@ class _RoomGridScreenState extends State<RoomGridScreen> {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () {
-          // Hiển thị dialog chi tiết phòng
           showDialog(
             context: context,
             builder: (context) => RoomDetailDialog(room: room),
@@ -218,25 +219,13 @@ class _RoomGridScreenState extends State<RoomGridScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Ảnh phòng
             SizedBox(
               height: 100,
               width: double.infinity,
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  Image.network(
-                    roomImage,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        color: Colors.grey[100],
-                        child: Center(
-                          child: Icon(Icons.meeting_room_outlined, size: 30, color: Colors.grey[400]),
-                        ),
-                      );
-                    },
-                  ),
+                  _buildRoomIllustration(room.status),
                   // Overlay bóng mờ nhẹ hoặc tag số tầng
                   Positioned(
                     top: 6,
@@ -620,8 +609,7 @@ class _RoomGridScreenState extends State<RoomGridScreen> {
               final messenger = ScaffoldMessenger.of(context);
               Navigator.pop(context);
               try {
-                await RoomService().deleteRoom(room.id);
-                await PropertyService().updateRoomCount(room.propertyId, -1);
+                await RoomService().deleteRoom(room.id, room.propertyId);
                 messenger.showSnackBar(
                   const SnackBar(
                     content: Text('Đã xóa phòng!'),

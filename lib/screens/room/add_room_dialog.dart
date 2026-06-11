@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/room.dart';
 import '../../services/room_service.dart';
-import '../../services/property_service.dart';
 
 class AddRoomDialog extends StatefulWidget {
   final String propertyId;
@@ -24,7 +22,6 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
   late TextEditingController _floorController;
   late TextEditingController _priceController;
   late TextEditingController _areaController;
-  late TextEditingController _imageUrlController;
   late TextEditingController _descriptionController;
   bool _isLoading = false;
 
@@ -41,8 +38,6 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
         text: widget.room != null ? widget.room!.price.toStringAsFixed(0) : '');
     _areaController = TextEditingController(
         text: widget.room != null ? widget.room!.area.toStringAsFixed(0) : '');
-    _imageUrlController =
-        TextEditingController(text: widget.room?.imageUrl ?? '');
     _descriptionController =
         TextEditingController(text: widget.room?.description ?? '');
   }
@@ -53,7 +48,6 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
     _floorController.dispose();
     _priceController.dispose();
     _areaController.dispose();
-    _imageUrlController.dispose();
     _descriptionController.dispose();
     super.dispose();
   }
@@ -63,27 +57,24 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
       setState(() => _isLoading = true);
 
       try {
-        final room = Room(
-          id: isEditing
-              ? widget.room!.id
-              : DateTime.now().millisecondsSinceEpoch.toString(),
-          propertyId: widget.propertyId,
-          ownerId: FirebaseAuth.instance.currentUser?.uid ?? '',
-          roomNumber: _roomNumberController.text.trim(),
-          floor: int.tryParse(_floorController.text) ?? 1,
-          area: double.tryParse(_areaController.text) ?? 0,
-          price: double.tryParse(_priceController.text) ?? 0,
-          status: isEditing ? widget.room!.status : 'available',
-          imageUrl: _imageUrlController.text.trim(),
-          description: _descriptionController.text.trim(),
-          createdAt: isEditing ? widget.room!.createdAt : DateTime.now(),
-        );
-
         if (isEditing) {
-          await RoomService().updateRoom(room);
+          await RoomService().updateRoom(
+            widget.room!.id,
+            roomNumber: _roomNumberController.text.trim(),
+            floor: int.tryParse(_floorController.text) ?? 1,
+            area: double.tryParse(_areaController.text) ?? 0,
+            price: double.tryParse(_priceController.text) ?? 0,
+            description: _descriptionController.text.trim(),
+          );
         } else {
-          await RoomService().addRoom(room);
-          await PropertyService().updateRoomCount(widget.propertyId, 1);
+          await RoomService().addRoom(
+            propertyId: widget.propertyId,
+            roomNumber: _roomNumberController.text.trim(),
+            floor: int.tryParse(_floorController.text) ?? 1,
+            area: double.tryParse(_areaController.text) ?? 0,
+            price: double.tryParse(_priceController.text) ?? 0,
+            description: _descriptionController.text.trim(),
+          );
         }
 
         if (mounted) {
@@ -193,21 +184,6 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
                 keyboardType: TextInputType.number,
                 validator: (value) =>
                     value == null || value.isEmpty ? 'Bắt buộc nhập giá' : null,
-              ),
-              const SizedBox(height: 12),
-
-              // Đường dẫn ảnh
-              TextFormField(
-                controller: _imageUrlController,
-                textInputAction: TextInputAction.next,
-                decoration: InputDecoration(
-                  labelText: 'Đường dẫn ảnh phòng trọ (URL)',
-                  hintText: 'VD: https://example.com/room.jpg',
-                  prefixIcon: const Icon(Icons.image_outlined),
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                ),
-                keyboardType: TextInputType.url,
               ),
               const SizedBox(height: 12),
 

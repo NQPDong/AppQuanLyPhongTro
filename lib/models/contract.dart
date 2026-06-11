@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 class Contract {
   final String id;
   final String ownerId;
@@ -27,34 +25,33 @@ class Contract {
     required this.createdAt,
   });
 
-  factory Contract.fromMap(Map<String, dynamic> data, String id) {
+  factory Contract.fromJson(Map<String, dynamic> json) {
     return Contract(
-      id: id,
-      ownerId: data['ownerId'] ?? '',
-      propertyId: data['propertyId'] ?? '',
-      roomId: data['roomId'] ?? '',
-      tenantId: data['tenantId'] ?? '',
-      startDate: (data['startDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      endDate: (data['endDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      depositAmount: (data['depositAmount'] ?? 0).toDouble(),
-      status: data['status'] ?? 'active',
-      code: data['code'] ?? '',
-      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      id: json['id'] ?? '',
+      ownerId: json['ownerId'] ?? '',
+      propertyId: json['propertyId'] ?? '',
+      roomId: json['roomId'] ?? '',
+      tenantId: json['tenantId'] ?? '',
+      startDate: json['startDate'] != null ? DateTime.parse(json['startDate']) : DateTime.now(),
+      endDate: json['endDate'] != null ? DateTime.parse(json['endDate']) : DateTime.now(),
+      depositAmount: (json['depositAmount'] ?? 0).toDouble(),
+      status: json['status'] ?? 'active',
+      code: json['code'] ?? '',
+      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : DateTime.now(),
     );
   }
 
-  Map<String, dynamic> toMap() {
+  Map<String, dynamic> toJson() {
     return {
       'ownerId': ownerId,
       'propertyId': propertyId,
       'roomId': roomId,
       'tenantId': tenantId,
-      'startDate': Timestamp.fromDate(startDate),
-      'endDate': Timestamp.fromDate(endDate),
+      'startDate': startDate.toIso8601String(),
+      'endDate': endDate.toIso8601String(),
       'depositAmount': depositAmount,
       'status': status,
       'code': code,
-      'createdAt': Timestamp.fromDate(createdAt),
     };
   }
 }
