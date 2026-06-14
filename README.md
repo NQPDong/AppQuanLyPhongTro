@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-Dưới đây là nội dung file README.md chuyên nghiệp và đầy đủ cho đồ án Quản lý phòng trọ của ông, dựa trên các công nghệ và cấu trúc có sẵn trong mã nguồn:
-
 🏠 Ứng dụng Quản lý Phòng trọ (Boarding House Management App)
 Ứng dụng di động được xây dựng bằng Flutter và Firebase, hỗ trợ các chủ trọ quản lý vận hành phòng trọ một cách hiện đại, tối ưu hóa việc lưu trữ và truy xuất dữ liệu khách thuê trên nền tảng đám mây.
 
