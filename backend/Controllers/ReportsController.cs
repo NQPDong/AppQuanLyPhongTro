@@ -27,8 +27,6 @@ namespace QuanLyPhongTroAPI.Controllers
                 return BadRequest(new { message = "ownerId không được để trống!" });
             }
 
-
-
             var monthlyRevenue = new double[12];
             int rentedCount = 0;
             int availableCount = 0;

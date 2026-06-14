@@ -1,113 +1,142 @@
-# 🏠 Ứng Dụng Quản Lý Phòng Trọ (Boarding House Management App)
+<<<<<<< HEAD
+Dưới đây là nội dung file README.md chuyên nghiệp và đầy đủ cho đồ án Quản lý phòng trọ của ông, dựa trên các công nghệ và cấu trúc có sẵn trong mã nguồn:
 
-Ứng dụng di động quản lý vận hành phòng trọ được xây dựng bằng **Flutter**, kết nối với cơ sở dữ liệu **Microsoft SQL Server** thông qua **ASP.NET Core Web API (C#)**. Dự án hỗ trợ các chủ trọ dễ dàng quản lý thông tin phòng trọ, hợp đồng thuê, khách thuê, hóa đơn và theo dõi doanh thu theo thời gian thực.
+🏠 Ứng dụng Quản lý Phòng trọ (Boarding House Management App)
+Ứng dụng di động được xây dựng bằng Flutter và Firebase, hỗ trợ các chủ trọ quản lý vận hành phòng trọ một cách hiện đại, tối ưu hóa việc lưu trữ và truy xuất dữ liệu khách thuê trên nền tảng đám mây.
+
+🌟 Tính năng nổi bật
+Xác thực người dùng: Hệ thống đăng nhập và phân quyền bảo mật thông qua Firebase Authentication.
+
+Quản lý dữ liệu thời gian thực: Sử dụng Cloud Firestore để đồng bộ hóa danh sách phòng, dịch vụ và thông tin khách hàng ngay lập tức.
+
+Hệ thống ổn định: Tích hợp Firebase Core giúp ứng dụng kết nối mượt mà và tin cậy với các dịch vụ backend.
+
+Giao diện hiện đại: Sử dụng Material Design và các icon tinh tế từ Cupertino Icons.
+
+🛠 Tech Stack
+Ngôn ngữ: Dart.
+
+Framework: Flutter (v3.10.7+).
+
+Backend: Firebase (Firestore, Auth, Core).
+
+Công cụ phát triển: Android Studio / VS Code.
+
+📂 Cấu trúc thư mục
+Plaintext
+app_quanly_phong/
+├── lib/ 
+│   ├── main.dart         # Điểm khởi đầu của ứng dụng
+│   ├── models/           # Định nghĩa các đối tượng dữ liệu
+│   ├── screens/          # Giao diện các màn hình chức năng
+│   ├── services/         # Xử lý logic Firebase (Auth, Firestore)
+│   └── widgets/          # Các thành phần giao diện dùng chung
+├── android/              # Cấu hình cho nền tảng Android
+├── ios/                  # Cấu hình cho nền tảng iOS
+└── pubspec.yaml          # Quản lý thư viện và phiên bản
+🚀 Hướng dẫn cài đặt
+1. Yêu cầu hệ thống
+Đã cài đặt Flutter SDK.
+
+Có tài khoản Firebase và đã tạo dự án mới.
+
+2. Các bước thực hiện
+Clone repository:
+
+Bash  
+git clone https://github.com/NQPDong/AppQuanLyPhongTro.git
+Cài đặt thư viện:
+
+Bash
+flutter pub get
+Cấu hình Firebase:
+
+Tải file google-services.json từ Firebase Console và đặt vào thư mục android/app/.
+
+Tải file GoogleService-Info.plist và đặt vào thư mục ios/Runner/.
+
+Chạy ứng dụng:
+
+Bash
+flutter run
+=======
+# Hướng Dẫn Cài Đặt Và Chạy Dự Án Quản Lý Phòng Trọ
+
+Tài liệu này hướng dẫn cách cấu hình và chạy mã nguồn dự án Flutter này trên một máy tính mới.
+
+## 1. Yêu cầu hệ thống (Prerequisites)
+
+Để chạy được dự án, máy tính của bạn cần cài đặt sẵn các phần mềm sau:
+- **[Flutter SDK](https://docs.flutter.dev/get-started/install)** (Đảm bảo đã thêm đường dẫn `flutter\bin` vào biến môi trường `Path`).
+- Trình soạn thảo mã: **[Visual Studio Code](https://code.visualstudio.com/)** hoặc **[Android Studio](https://developer.android.com/studio)** (nên cài thêm các extension/plugin cho Flutter và Dart).
+- Để chạy ứng dụng như một phần mềm Windows Desktop, máy tính phải được bật **Developer Mode**.
 
 ---
 
-## 🛠 Công Nghệ Sử Dụng (Tech Stack)
+## 2. Các bước khởi chạy dự án
 
-- **Frontend:** Flutter SDK (Dart)
-- **Backend API:** ASP.NET Core Web API (.NET 8.0)
-- **Database:** Microsoft SQL Server
-- **IDE hỗ trợ:** VS Code, Visual Studio hoặc Android Studio
+**Bước 1: Mở dự án**
+Mở thư mục `quan_ly_phong_tro` bằng trình soạn thảo mã (VS Code hoặc Android Studio).
 
----
+**Bước 2: Cập nhật thư viện (Dependencies)**
+Mở Terminal tại thư mục gốc của dự án (trong VS Code nhấn `` Ctrl + ` ``) và chạy lần lượt các lệnh sau:
+```bash
+flutter clean
+flutter pub get
 
-## 📂 Cấu Trúc Dự Án
-
-```plaintext
-AppQLPhongTro/
-├── backend/                       # Source code ASP.NET Core C# API
-│   ├── Controllers/               # Bộ xử lý các API endpoint
-│   ├── AppDbContext.cs            # Kết nối EF Core với SQL Server
-│   ├── Models.cs                  # Định nghĩa các Model dữ liệu
-│   ├── Program.cs                 # Cấu hình khởi chạy API & Kestrel Port 5276
-│   ├── appsettings.json           # Cấu hình Connection String tới SQL Server
-│   └── database.sql               # Script khởi tạo Database và dữ liệu mẫu
-│
-└── quan_ly_phong_tro/             # Source code Flutter Client
-    ├── assets/                    # Hình ảnh, font chữ dùng trong app
-    ├── lib/
-    │   ├── models/                # Lớp ánh xạ dữ liệu từ API
-    │   ├── providers/             # Quản lý trạng thái (State Management)
-    │   ├── screens/               # Giao diện màn hình ứng dụng
-    │   └── services/              # Xử lý các yêu cầu HTTP gọi lên API backend
-    ├── pubspec.yaml               # Cấu hình thư viện phụ thuộc
-    └── .gitignore                 # Bỏ qua các file build và các cấu hình riêng tư
+* nếu lỗi "Building with plugins requires symlink support.
+Please enable Developer Mode in your system settings. Run
+  start ms-settings:developers
+to open settings."
+ Thì chạy lệnh start ms-settings:developers trên cmd  VÀ BẬT DEVELOPER MODE LÊN
 ```
 
----
-
-## 🚀 Hướng Dẫn Cài Đặt Và Khởi Chạy Dự Án
-
-### Bước 1: Thiết lập Cơ sở dữ liệu (Microsoft SQL Server)
-
-1. Mở **SQL Server Management Studio (SSMS)** và kết nối với Server của bạn.
-2. Mở và chạy toàn bộ nội dung file SQL script nằm ở địa chỉ `backend/database.sql` để:
-   - Tạo cơ sở dữ liệu `QuanLyPhongTro`.
-   - Tạo các bảng: `Users`, `Properties`, `Rooms`, `Tenants`, `Contracts`, `Invoices`.
-   - Chèn các bản ghi dữ liệu mẫu (1 chủ trọ mặc định `admin@gmail.com` mật khẩu `123456`, 10 khách thuê mẫu, 1 cơ sở trọ mẫu, và 10 phòng trọ mẫu).
+**Bước 3: Chạy ứng dụng**
+Để chạy ứng dụng, bạn có thể nhấn `F5` trên VS Code hoặc gõ lệnh sau vào Terminal:
+```bash
+flutter run
+```
+*Hệ thống sẽ liệt kê các thiết bị khả dụng (Chrome, Windows, Android Emulator...). Nhấn phím số tương ứng với thiết bị bạn muốn chạy.*
 
 ---
 
-### Bước 2: Cấu hình và Chạy Backend API (ASP.NET Core)
+## 3. Khắc phục các lỗi thường gặp (Troubleshooting)
 
-1. Đi đến thư mục chứa backend:
-   ```bash
-   cd backend
+Dưới đây là một số lỗi bạn có thể gặp trong quá trình cài đặt môi trường mới và cách khắc phục:
+
+### 3.1. Lỗi Developer Mode trên Windows
+Khi build ứng dụng cho Windows, bạn có thể gặp thông báo:
+> *Please enable Developer Mode in your system settings. Run start ms-settings:developers to open settings.*
+
+**Cách sửa lỗi:**
+1. Mở **Command Prompt (CMD)** hoặc hộp thoại **Run** (`Win + R`), chạy lệnh:
+   ```cmd
+   start ms-settings:developers
    ```
-2. Mở file `appsettings.json` và cấu hình lại đường dẫn **ConnectionStrings** khớp với SQL Server của máy bạn:
-   ```json
-   "ConnectionStrings": {
-     "DefaultConnection": "Server=<TÊN_SQL_SERVER_CỦA_BẠN>;Database=QuanLyPhongTro;Trusted_Connection=True;TrustServerCertificate=True;"
-   }
-   ```
-   *(Ví dụ: `Server=Dong05;Database=QuanLyPhongTro;...`)*
-3. Chạy API Server thông qua dòng lệnh dotnet:
-   ```bash
-   dotnet run
-   ```
-   *Mặc định, Kestrel server được cấu hình lắng nghe trên cổng **5276** (`http://localhost:5276` hoặc `http://10.0.2.2:5276` trên Android).*
+2. Tại cửa sổ Settings vừa mở, bật công tắc **Developer Mode** (Chế độ nhà phát triển) sang trạng thái **On**.
+3. Quay lại Terminal và chạy lại `flutter run`.
 
----
+### 3.2. Lỗi liên quan đến Firebase & Môi trường
+Dự án này sử dụng Firebase. Thông thường cấu hình đã nằm sẵn trong `lib/firebase_options.dart`. Nếu bạn cần kết nối sang một project Firebase khác hoặc môi trường bị thiếu, thực hiện các bước sau:
 
-### Bước 3: Cấu hình và Chạy ứng dụng Flutter
+**1. Đăng nhập Firebase CLI:**
+```bash
+npm install -g firebase-tools
+firebase login
+```
 
-1. Đi đến thư mục dự án Flutter:
-   ```bash
-   cd quan_ly_phong_tro
-   ```
-2. Cài đặt các thư viện phụ thuộc:
-   ```bash
-   flutter pub get
-   ```
-3. Cấu hình địa chỉ IP máy chủ API:
-   - Mở file `lib/services/api_config.dart`.
-   - Hàm `baseUrl` đã được cấu hình tự động nhận diện thiết bị chạy:
-     - Trên **Android Emulator**: Kết nối qua IP giả lập `http://10.0.2.2:5276/api`.
-     - Trên **iOS / Web / Windows Desktop**: Kết nối qua `http://localhost:5276/api`.
-     - *Lưu ý:* Nếu chạy trên **Thiết bị thật (Physical Device)**, hãy thay đổi IP `localhost` thành IP nội bộ WiFi của máy tính đang chạy backend (ví dụ: `http://192.168.1.5:5276/api`).
-4. Khởi chạy ứng dụng:
-   ```bash
-   flutter run
-   ```
+**2. Cài đặt và khắc phục lỗi không nhận diện FlutterFire:**
+Nếu bạn gặp lỗi không chạy được lệnh `flutterfire configure`, nguyên nhân là do thiếu biến môi trường.
+- Cài đặt công cụ: `dart pub global activate flutterfire_cli`
+- **Sửa lỗi Path:** Mở cài đặt **Environment Variables** của Windows, thêm đường dẫn sau vào biến `Path` của tài khoản:
+  `C:\Users\<Tên_User_Của_Bạn>\AppData\Local\Pub\Cache\bin`
+  *(Ví dụ của máy cũ là: `C:\Users\Admin\AppData\Local\Pub\Cache\bin`)*
 
----
+**3. Kết nối lại Firebase:**
+Mở lại Terminal mới cho nhận biến môi trường và chạy:
+```bash
+flutterfire configure
+```
 
-## 🛠 Khắc phục lỗi thường gặp
-
-### 1. Lỗi Developer Mode trên Windows
-Khi build/run ứng dụng trên nền tảng Windows Desktop, nếu gặp lỗi yêu cầu Developer Mode:
-1. Nhấn tổ hợp phím `Win + R`, nhập `start ms-settings:developers` và nhấn Enter.
-2. Bật chế độ **Developer Mode** (Chế độ nhà phát triển) sang **On**.
-
-### 2. Lỗi Kết Nối API (SocketException / Connection Refused)
-- Đảm bảo backend API ở Bước 2 đang chạy và hiển thị cổng `5276`.
-- Đảm bảo kết nối mạng giữa điện thoại/máy ảo và máy tính chạy server chung một đường truyền mạng.
-- Tạm thời tắt Windows Defender Firewall nếu thiết bị thật không thể gọi API trên máy tính.
-
----
-
-## 🌟 Tài khoản Đăng nhập Mẫu
-- **Email:** `admin@gmail.com`
-- **Mật khẩu:** `123456`
+*(Lưu ý: Để cài đặt thư viện core của Firebase trong Flutter nếu chưa có, dùng lệnh: `flutter pub add firebase_core`)*
+>>>>>>> feature/member2

@@ -160,3 +160,30 @@ VALUES
 GO
 
 
+CREATE PROCEDURE [dbo].[sp_GetRevenueAndRoomStats]
+    @OwnerId NVARCHAR(450),
+    @Year    INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- ResultSet 1: Tong doanh thu hoa don DA THANH TOAN, nhom theo tung thang
+    SELECT
+        i.[Month]             AS [Month],
+        SUM(i.[TotalAmount])  AS [Revenue]
+    FROM [dbo].[Invoices] i
+    WHERE
+        i.[OwnerId] = @OwnerId
+        AND i.[Year]   = @Year
+        AND i.[IsPaid] = 1
+    GROUP BY i.[Month]
+    ORDER BY i.[Month];
+
+    -- ResultSet 2: So phong dang cho thue va so phong dang trong
+    SELECT
+        SUM(CASE WHEN r.[Status] = 'rented'    THEN 1 ELSE 0 END) AS [RentedCount],
+        SUM(CASE WHEN r.[Status] = 'available' THEN 1 ELSE 0 END) AS [AvailableCount]
+    FROM [dbo].[Rooms] r
+    WHERE r.[OwnerId] = @OwnerId;
+END;
+GO

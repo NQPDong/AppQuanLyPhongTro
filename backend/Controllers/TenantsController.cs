@@ -96,12 +96,12 @@ namespace QuanLyPhongTroAPI.Controllers
             var tenant = await _context.Tenants.FindAsync(id);
             if (tenant == null) return NotFound();
 
-            // Xóa các hợp đồng và hóa đơn liên quan để tránh lỗi khóa ngoại
-            var contracts = await _context.Contracts.Where(c => c.TenantId == id).ToListAsync();
-            _context.Contracts.RemoveRange(contracts);
-
+            // Xóa hóa đơn trước hợp đồng để tránh lỗi khóa ngoại.
             var invoices = await _context.Invoices.Where(i => i.TenantId == id).ToListAsync();
             _context.Invoices.RemoveRange(invoices);
+
+            var contracts = await _context.Contracts.Where(c => c.TenantId == id).ToListAsync();
+            _context.Contracts.RemoveRange(contracts);
 
             _context.Tenants.Remove(tenant);
             await _context.SaveChangesAsync();

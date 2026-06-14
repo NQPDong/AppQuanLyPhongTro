@@ -77,15 +77,15 @@ namespace QuanLyPhongTroAPI.Controllers
             var property = await _context.Properties.FindAsync(id);
             if (property == null) return NotFound();
 
-            // Xóa cascade thủ công để tránh lỗi khóa ngoại (Foreign Key)
+            // Xóa cascade thủ công theo đúng thứ tự khóa ngoại: hóa đơn -> hợp đồng -> phòng -> cơ sở.
             var rooms = await _context.Rooms.Where(r => r.PropertyId == id).ToListAsync();
             foreach (var room in rooms)
             {
-                var contracts = await _context.Contracts.Where(c => c.RoomId == room.Id).ToListAsync();
-                _context.Contracts.RemoveRange(contracts);
-
                 var invoices = await _context.Invoices.Where(i => i.RoomId == room.Id).ToListAsync();
                 _context.Invoices.RemoveRange(invoices);
+
+                var contracts = await _context.Contracts.Where(c => c.RoomId == room.Id).ToListAsync();
+                _context.Contracts.RemoveRange(contracts);
             }
             _context.Rooms.RemoveRange(rooms);
 

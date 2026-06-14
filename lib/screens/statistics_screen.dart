@@ -30,10 +30,53 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
         return StreamBuilder<List<Room>>(
           stream: _roomService.getAllRooms(),
           builder: (context, roomSnapshot) {
+            // Kiểm tra nếu có lỗi từ các API
+            if (invoiceSnapshot.hasError) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.error_outline, color: Colors.red, size: 48),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Không thể tải dữ liệu hóa đơn:\n${invoiceSnapshot.error}',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Colors.red, fontSize: 16),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            if (roomSnapshot.hasError) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.error_outline, color: Colors.red, size: 48),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Không thể tải dữ liệu phòng:\n${roomSnapshot.error}',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Colors.red, fontSize: 16),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            // Kiểm tra trạng thái đang tải
             if (!invoiceSnapshot.hasData || !roomSnapshot.hasData) {
               return const Center(child: CircularProgressIndicator());
             }
 
+            // Khi đã có dữ liệu an toàn
             final invoices = invoiceSnapshot.data!;
             final rooms = roomSnapshot.data!;
 
@@ -111,7 +154,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                               ),
                               icon: const Icon(Icons.download_rounded, size: 20),
                               label: const Text('Xuất PDF', style: TextStyle(fontWeight: FontWeight.bold)),
-                            )
+                            ),
                           ],
                         ),
                       ],
@@ -129,16 +172,17 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                         color: const Color(0xFFECFDF5), // Xanh lá nhạt
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(color: const Color(0xFFD1FAE5)),
-                        boxShadow: [
-                          BoxShadow(color: Colors.black.withOpacity(0.01), blurRadius: 10, offset: const Offset(0, 5)),
-                        ],
+                        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.01), blurRadius: 10, offset: const Offset(0, 5))],
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Icon(Icons.monetization_on_rounded, color: Color(0xFF10B981), size: 24),
                           const SizedBox(height: 8),
-                          Text('Doanh thu năm $selectedYear', style: const TextStyle(color: Color(0xFF047857), fontSize: 13, fontWeight: FontWeight.bold)),
+                          Text(
+                            'Doanh thu năm $selectedYear',
+                            style: const TextStyle(color: Color(0xFF047857), fontSize: 13, fontWeight: FontWeight.bold),
+                          ),
                           const SizedBox(height: 4),
                           Text(
                             '${_formatCurrency(totalRevenue)} đ',
@@ -168,17 +212,11 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(24),
-                        boxShadow: [
-                          BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 20, offset: const Offset(0, 10)),
-                        ],
+                        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 20, offset: const Offset(0, 10))],
                       ),
                       child: Column(
                         children: [
-                          Row(
-                            children: [
-                              _buildChartLegend('Đã thu', const Color(0xFF6366F1)),
-                            ],
-                          ),
+                          Row(children: [_buildChartLegend('Đã thu', const Color(0xFF6366F1))]),
                           const SizedBox(height: 16),
                           Expanded(
                             child: BarChart(
@@ -189,10 +227,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                                   touchTooltipData: BarTouchTooltipData(
                                     getTooltipColor: (_) => const Color(0xFF1E293B),
                                     getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                                      return BarTooltipItem(
-                                        '${rod.toY.toStringAsFixed(0)}đ',
-                                        const TextStyle(color: Colors.white),
-                                      );
+                                      return BarTooltipItem('${rod.toY.toStringAsFixed(0)}đ', const TextStyle(color: Colors.white));
                                     },
                                   ),
                                 ),
@@ -205,7 +240,11 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                                         const style = TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.bold, fontSize: 10);
                                         String text = 'T${value.toInt() + 1}';
                                         if (value.toInt() % 2 != 0) text = ''; // Chỉ hiện tháng lẻ cho đỡ chật
-                                        return SideTitleWidget(meta: meta, space: 4, child: Text(text, style: style));
+                                        return SideTitleWidget(
+                                          meta: meta,
+                                          space: 4,
+                                          child: Text(text, style: style),
+                                        );
                                       },
                                     ),
                                   ),
@@ -218,14 +257,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                                 barGroups: List.generate(12, (index) {
                                   return BarChartGroupData(
                                     x: index,
-                                    barRods: [
-                                      BarChartRodData(
-                                        toY: monthlyRevenue[index], 
-                                        color: const Color(0xFF6366F1),
-                                        width: 14,
-                                        borderRadius: BorderRadius.circular(4),
-                                      )
-                                    ],
+                                    barRods: [BarChartRodData(toY: monthlyRevenue[index], color: const Color(0xFF6366F1), width: 14, borderRadius: BorderRadius.circular(4))],
                                   );
                                 }),
                               ),
@@ -254,9 +286,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(24),
-                        boxShadow: [
-                          BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 20, offset: const Offset(0, 10)),
-                        ],
+                        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 20, offset: const Offset(0, 10))],
                       ),
                       child: Row(
                         children: [
@@ -284,15 +314,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                               ),
                             ),
                           ),
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildChartLegend('Đã thuê ($rentedCount)', const Color(0xFF6366F1)),
-                              const SizedBox(height: 8),
-                              _buildChartLegend('Còn trống ($availableCount)', const Color(0xFFCBD5E1)),
-                            ],
-                          )
+                          Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [_buildChartLegend('Đã thuê ($rentedCount)', const Color(0xFF6366F1)), const SizedBox(height: 8), _buildChartLegend('Còn trống ($availableCount)', const Color(0xFFCBD5E1))]),
                         ],
                       ),
                     ),
@@ -312,13 +334,15 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                       if (invoices.isEmpty) {
                         return const Padding(
                           padding: EdgeInsets.all(24),
-                          child: Center(child: Text('Chưa có hoạt động nào', style: TextStyle(color: Color(0xFF64748B)))),
+                          child: Center(
+                            child: Text('Chưa có hoạt động nào', style: TextStyle(color: Color(0xFF64748B))),
+                          ),
                         );
                       }
-                      
+
                       final recentInvoices = invoices.toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
                       final top5Recent = recentInvoices.take(5).toList();
-                      
+
                       return Column(
                         children: top5Recent.map((inv) {
                           String roomName = 'Phòng đã xóa';
@@ -326,12 +350,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                             final room = rooms.firstWhere((r) => r.id == inv.roomId);
                             roomName = 'Phòng ${room.roomNumber}';
                           } catch (_) {}
-                          
-                          return _buildTenantItem(
-                            'Hóa đơn T${inv.month}/${inv.year} - $roomName',
-                            inv.isPaid ? 'Đã thu' : 'Chưa thu',
-                            inv.isPaid ? 1.0 : 0.5,
-                          );
+
+                          return _buildTenantItem('Hóa đơn T${inv.month}/${inv.year} - $roomName', inv.isPaid ? 'Đã thu' : 'Chưa thu', inv.isPaid ? 1.0 : 0.5);
                         }).toList(),
                       );
                     },
@@ -349,9 +369,16 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
   Widget _buildChartLegend(String label, Color color) {
     return Row(
       children: [
-        Container(width: 12, height: 12, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
         const SizedBox(width: 8),
-        Text(label, style: const TextStyle(color: Color(0xFF64748B), fontSize: 13, fontWeight: FontWeight.w500)),
+        Text(
+          label,
+          style: const TextStyle(color: Color(0xFF64748B), fontSize: 13, fontWeight: FontWeight.w500),
+        ),
       ],
     );
   }
@@ -364,28 +391,27 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 5)),
-          ],
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 5))],
         ),
         child: Column(
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(name, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
-                Text(room, style: const TextStyle(color: Color(0xFF6366F1), fontWeight: FontWeight.w600, fontSize: 13)),
+                Text(
+                  name,
+                  style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+                ),
+                Text(
+                  room,
+                  style: const TextStyle(color: Color(0xFF6366F1), fontWeight: FontWeight.w600, fontSize: 13),
+                ),
               ],
             ),
             const SizedBox(height: 12),
             ClipRRect(
               borderRadius: BorderRadius.circular(10),
-              child: LinearProgressIndicator(
-                value: value,
-                minHeight: 8,
-                backgroundColor: const Color(0xFFF1F5F9),
-                color: const Color(0xFF6366F1),
-              ),
+              child: LinearProgressIndicator(value: value, minHeight: 8, backgroundColor: const Color(0xFFF1F5F9), color: const Color(0xFF6366F1)),
             ),
           ],
         ),
@@ -397,7 +423,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     RegExp reg = RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))');
     return value.toStringAsFixed(0).replaceAllMapped(reg, (Match match) => '${match[1]}.');
   }
-  
+
   Future<void> _exportPdf(List<double> monthlyRevenue, int rentedCount, int availableCount) async {
     pw.Font font;
     pw.Font fontBold;
@@ -412,10 +438,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     }
 
     final pdf = pw.Document(
-      theme: pw.ThemeData.withFont(
-        base: font,
-        bold: fontBold,
-      ),
+      theme: pw.ThemeData.withFont(base: font, bold: fontBold),
     );
 
     double totalRevenue = monthlyRevenue.fold(0, (sum, val) => sum + val);
@@ -435,10 +458,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
               pw.SizedBox(height: 10),
               pw.Text('Doanh thu theo từng tháng:'),
               ...List.generate(12, (index) {
-                return pw.Padding(
-                  padding: const pw.EdgeInsets.only(left: 10, top: 4),
-                  child: pw.Text('- Tháng ${index + 1}: ${monthlyRevenue[index].toStringAsFixed(0)} VNĐ'),
-                );
+                return pw.Padding(padding: const pw.EdgeInsets.only(left: 10, top: 4), child: pw.Text('- Tháng ${index + 1}: ${monthlyRevenue[index].toStringAsFixed(0)} VNĐ'));
               }),
               pw.SizedBox(height: 20),
               pw.Text('2. TÌNH TRẠNG PHÒNG', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
@@ -447,19 +467,13 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
               pw.Text('- Đã cho thuê: $rentedCount phòng'),
               pw.Text('- Đang trống: $availableCount phòng'),
               pw.SizedBox(height: 30),
-              pw.Align(
-                alignment: pw.Alignment.centerRight,
-                child: pw.Text('Ngày xuất báo cáo: ${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}'),
-              ),
+              pw.Align(alignment: pw.Alignment.centerRight, child: pw.Text('Ngày xuất báo cáo: ${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}')),
             ],
           );
         },
       ),
     );
 
-    await Printing.layoutPdf(
-      onLayout: (PdfPageFormat format) async => pdf.save(),
-      name: 'Bao_Cao_Thong_Ke_$selectedYear.pdf',
-    );
+    await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save(), name: 'Bao_Cao_Thong_Ke_$selectedYear.pdf');
   }
 }

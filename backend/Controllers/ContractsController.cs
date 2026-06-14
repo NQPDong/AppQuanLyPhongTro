@@ -51,22 +51,33 @@ namespace QuanLyPhongTroAPI.Controllers
         {
             if (contract == null) return BadRequest();
 
-            contract.Id = Guid.NewGuid().ToString();
-            contract.CreatedAt = DateTime.UtcNow;
-            contract.Status = "active";
-            contract.Code = await GenerateCode(contract.OwnerId);
-
-            _context.Contracts.Add(contract);
-
-            // Cập nhật trạng thái phòng thành 'rented'
-            var room = await _context.Rooms.FindAsync(contract.RoomId);
-            if (room != null)
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
             {
-                room.Status = "rented";
-            }
+                contract.Id = Guid.NewGuid().ToString();
+                contract.CreatedAt = DateTime.UtcNow;
+                contract.Status = "active";
+                contract.Code = await GenerateCode(contract.OwnerId);
 
-            await _context.SaveChangesAsync();
-            return Ok(contract);
+                _context.Contracts.Add(contract);
+
+                // Cập nhật trạng thái phòng thành 'rented'
+                var room = await _context.Rooms.FindAsync(contract.RoomId);
+                if (room != null)
+                {
+                    room.Status = "rented";
+                }
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return Ok(contract);
+            }
+            catch (Exception)
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
 
         [HttpPost("terminate/{id}")]
@@ -75,17 +86,28 @@ namespace QuanLyPhongTroAPI.Controllers
             var contract = await _context.Contracts.FindAsync(id);
             if (contract == null) return NotFound();
 
-            contract.Status = "terminated";
-
-            // Cập nhật trạng thái phòng thành 'available'
-            var room = await _context.Rooms.FindAsync(contract.RoomId);
-            if (room != null)
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
             {
-                room.Status = "available";
-            }
+                contract.Status = "terminated";
 
-            await _context.SaveChangesAsync();
-            return Ok(contract);
+                // Cập nhật trạng thái phòng thành 'available'
+                var room = await _context.Rooms.FindAsync(contract.RoomId);
+                if (room != null)
+                {
+                    room.Status = "available";
+                }
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return Ok(contract);
+            }
+            catch (Exception)
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
 
         private async Task<string> GenerateCode(string ownerId)

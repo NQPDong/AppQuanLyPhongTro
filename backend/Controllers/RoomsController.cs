@@ -92,22 +92,32 @@ namespace QuanLyPhongTroAPI.Controllers
                 return BadRequest(new { message = "Số phòng này đã tồn tại!" });
             }
 
-            room.Id = Guid.NewGuid().ToString();
-            room.CreatedAt = DateTime.UtcNow;
-            room.Status = "available";
-
-            _context.Rooms.Add(room);
-
-            // Cập nhật số lượng phòng của Cơ sở
-            var property = await _context.Properties.FindAsync(room.PropertyId);
-            if (property != null)
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
             {
-                property.RoomCount += 1;
+                room.Id = Guid.NewGuid().ToString();
+                room.CreatedAt = DateTime.UtcNow;
+                room.Status = "available";
+
+                _context.Rooms.Add(room);
+
+                // Cập nhật số lượng phòng của Cơ sở
+                var property = await _context.Properties.FindAsync(room.PropertyId);
+                if (property != null)
+                {
+                    property.RoomCount += 1;
+                }
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return Ok(room);
             }
-
-            await _context.SaveChangesAsync();
-
-            return Ok(room);
+            catch (Exception)
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
 
         public class UpdateRoomRequest
@@ -159,24 +169,35 @@ namespace QuanLyPhongTroAPI.Controllers
 
             var propertyId = room.PropertyId;
 
-            // Xóa các hợp đồng và hóa đơn liên quan để tránh lỗi FK
-            var contracts = await _context.Contracts.Where(c => c.RoomId == id).ToListAsync();
-            _context.Contracts.RemoveRange(contracts);
-
-            var invoices = await _context.Invoices.Where(i => i.RoomId == id).ToListAsync();
-            _context.Invoices.RemoveRange(invoices);
-
-            _context.Rooms.Remove(room);
-
-            // Giảm số lượng phòng của Cơ sở
-            var property = await _context.Properties.FindAsync(propertyId);
-            if (property != null)
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
             {
-                property.RoomCount = Math.Max(0, property.RoomCount - 1);
-            }
+                // Xóa hóa đơn trước hợp đồng để tránh lỗi khóa ngoại.
+                var invoices = await _context.Invoices.Where(i => i.RoomId == id).ToListAsync();
+                _context.Invoices.RemoveRange(invoices);
 
-            await _context.SaveChangesAsync();
-            return Ok(new { message = "Xóa phòng thành công!" });
+                var contracts = await _context.Contracts.Where(c => c.RoomId == id).ToListAsync();
+                _context.Contracts.RemoveRange(contracts);
+
+                _context.Rooms.Remove(room);
+
+                // Giảm số lượng phòng của Cơ sở
+                var property = await _context.Properties.FindAsync(propertyId);
+                if (property != null)
+                {
+                    property.RoomCount = Math.Max(0, property.RoomCount - 1);
+                }
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return Ok(new { message = "Xóa phòng thành công!" });
+            }
+            catch (Exception)
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
     }
 }
